@@ -1,5 +1,7 @@
 # BITACORA — Transportes
 
+#
+
 CRM de Prisilla. Sistema local para una flota pequeña en Costa Rica: vencimientos de seguros, bitácora de viajes (para la contadora) y gasto de gasolina. Corre en una sola máquina, un solo usuario. Los datos viven en `data/basedatos.xlsx`. El nombre visible y los datos generales pueden cambiarse desde **Configuración**.
 
 ## Cómo abrir la app

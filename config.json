@@ -32,14 +32,14 @@
       "salida": "EMP-005",
       "llegada": "EMP-007",
       "codigo": "35142",
-      "precio": 84000.0,
+      "precio": 80000.0,
       "moneda": "CRC"
     },
     {
       "salida": "EMP-002",
       "llegada": "EMP-003",
       "codigo": "33321",
-      "precio": 23561.0,
+      "precio": 12561.0,
       "moneda": "CRC"
     }
   ]

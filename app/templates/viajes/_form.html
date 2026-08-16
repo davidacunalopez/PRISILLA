@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% block heading %}{% if fila.ID_Viaje %}Editar viaje{% else %}Registrar viaje{% endif %}{% endblock %}
+{% block actions %}{{ btn_ghost("/viajes", "Volver") }}{% endblock %}
+{% block content %}
+<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-5xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+  {{ mostrar_errores(errores) }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ field("Fecha", "Fecha", fila.Fecha, type="date", required=true) }}
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Semanas</span>
+      <input id="SemanaVisible" type="text" value="{% if fila.Semana %}Semana {{ fila.Semana }}{% endif %}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-600">
+      <input id="Semana" type="hidden" name="Semana" value="{{ fila.Semana or '' }}">
+      <span class="mt-1 block text-xs text-stone-400">Se calcula automáticamente desde la fecha.</span>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Salida *</span>
+      <select id="ID_Salida" name="ID_Salida" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for e in empresas %}
+        <option value="{{ e.ID_Empresa }}" {% if fila.ID_Salida == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}{% if e.Estado == "Inactivo" %} (archivada){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Llegada *</span>
+      <select id="ID_Llegada" name="ID_Llegada" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for e in empresas %}
+        <option value="{{ e.ID_Empresa }}" {% if fila.ID_Llegada == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}{% if e.Estado == "Inactivo" %} (archivada){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label id="codigo-ruta-wrapper" class="block rounded-xl transition">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Código de ruta</span>
+      <input id="CodigoRuta" name="CodigoRuta" value="{{ fila.CodigoRuta or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-medium text-forest" placeholder="Se asigna según la ruta">
+      <span id="estado-ruta" class="mt-1 block text-xs text-stone-400">Seleccione salida y llegada.</span>
+    </label>
+    <label id="categoria-wrapper" class="block rounded-xl transition">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Categoría *</span>
+      <select id="Categoria" name="Categoria" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        {% for categoria in categorias %}<option value="{{ categoria }}" {% if fila.Categoria == categoria %}selected{% endif %}>{{ categoria }}</option>{% endfor %}
+      </select>
+      <span id="estado-categoria" class="mt-1 block text-xs text-stone-400">Ruptura se reserva para rutas dentro de la misma estación.</span>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Empresa para la que se trabaja *</span>
+      <select name="EmpresaTrabajo" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for empresa in empresas_trabajo %}<option value="{{ empresa }}" {% if fila.EmpresaTrabajo == empresa %}selected{% endif %}>{{ empresa }}</option>{% endfor %}
+      </select>
+      {% if not empresas_trabajo %}<a href="/configuracion#empresas-trabajo" class="mt-1 block text-xs text-amber-700 hover:underline">Configure primero las empresas de trabajo.</a>{% endif %}
+    </label>
+    <label id="precio-ruta-wrapper" class="block rounded-xl transition">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Precio vigente de la ruta</span>
+      <input id="Precio" name="Precio" value="{{ fila.Precio or '' }}" type="number" readonly required step="0.01" min="0.01" class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-medium text-forest" placeholder="Se asigna según la ruta">
+      <span id="estado-precio" class="mt-1 block text-xs text-stone-400">Se completa con la tarifa configurada para la ruta.</span>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Moneda</span>
+      <input id="MonedaVisible" value="{{ fila.Moneda or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-600" placeholder="Automática">
+      <input id="Moneda" type="hidden" name="Moneda" value="{{ fila.Moneda or 'CRC' }}">
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Camión *</span>
+      <select id="ID_Camion" name="ID_Camion" required onchange="document.getElementById('ID_Chofer').value=this.options[this.selectedIndex].dataset.chofer||''" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for c in camiones %}
+        <option value="{{ c.ID_Camion }}" data-chofer="{{ c.ID_ChoferDisponible or '' }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Chofer *</span>
+      <select id="ID_Chofer" name="ID_Chofer" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for c in choferes %}
+        <option value="{{ c.ID_Chofer }}" {% if fila.ID_Chofer == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {{ field("Contenedor", "Contenedor", fila.Contenedor) }}
+    {{ field("Chasis", "Chasis", fila.Chasis) }}
+    {{ field("GuiaTirManifiesto", "Guía / TIR / Manifiesto", fila.GuiaTirManifiesto) }}
+    <input type="hidden" name="Estado" value="{{ fila.Estado or 'Pendiente' }}">
+    <input type="hidden" name="FechaRegistro" value="{{ fila.FechaRegistro or '' }}">
+  </div>
+  <div class="mt-6 flex items-center justify-between">
+    <button type="submit" class="rounded-full bg-forest px-7 py-3 text-sm font-semibold text-paper shadow-sm">Guardar viaje</button>
+    {% if fila.ID_Viaje %}
+    <button form="borrar" type="submit" class="text-sm text-red-700 hover:underline"
+            onclick="return confirm('¿Eliminar este viaje?')">Eliminar</button>
+    {% endif %}
+  </div>
+</form>
+<script>
+  const mapaRutas = {{ mapa_rutas|tojson }};
+  const rutaInicial = {{ ((fila.ID_Salida or '') ~ '|' ~ (fila.ID_Llegada or ''))|tojson }};
+  const precioHistorico = {{ (fila.Precio if fila.ID_Viaje else '')|tojson }};
+  const monedaHistorica = {{ (fila.Moneda if fila.ID_Viaje else '')|tojson }};
+  const codigoHistorico = {{ (fila.CodigoRuta if fila.ID_Viaje else '')|tojson }};
+  const fechaInput = document.querySelector('input[name="Fecha"]');
+  function actualizarSemana() {
+    if (!fechaInput.value) return;
+    const fecha = new Date(fechaInput.value + 'T12:00:00');
+    const jueves = new Date(fecha);
+    jueves.setDate(fecha.getDate() + 3 - ((fecha.getDay() + 6) % 7));
+    const semana1 = new Date(jueves.getFullYear(), 0, 4, 12);
+    const numero = 1 + Math.round(((jueves - semana1) / 86400000 - 3 + ((semana1.getDay() + 6) % 7)) / 7);
+    document.getElementById('Semana').value = String(numero);
+    document.getElementById('SemanaVisible').value = 'Semana ' + numero;
+  }
+  function actualizarCodigoRuta(conservarHistorico = false) {
+    const salida = document.getElementById('ID_Salida').value;
+    const llegada = document.getElementById('ID_Llegada').value;
+    const ruta = mapaRutas[salida + '|' + llegada] || {};
+    const usaHistorico = conservarHistorico && salida + '|' + llegada === rutaInicial && codigoHistorico && precioHistorico !== '';
+    const codigo = usaHistorico ? codigoHistorico : (ruta.codigo || '');
+    const campo = document.getElementById('CodigoRuta');
+    const precio = document.getElementById('Precio');
+    const moneda = document.getElementById('Moneda');
+    const monedaVisible = document.getElementById('MonedaVisible');
+    const estadoPrecio = document.getElementById('estado-precio');
+    const wrapperPrecio = document.getElementById('precio-ruta-wrapper');
+    const estado = document.getElementById('estado-ruta');
+    const categoria = document.getElementById('Categoria');
+    const estadoCategoria = document.getElementById('estado-categoria');
+    const wrapperCategoria = document.getElementById('categoria-wrapper');
+    const wrapperCodigo = document.getElementById('codigo-ruta-wrapper');
+    const rutaInterna = Boolean(salida && llegada && salida === llegada);
+    campo.value = codigo;
+    const precioAplicado = usaHistorico ? precioHistorico : (ruta.precio ?? '');
+    const monedaAplicada = usaHistorico ? monedaHistorica : (ruta.moneda || 'CRC');
+    precio.value = precioAplicado;
+    moneda.value = monedaAplicada;
+    monedaVisible.value = precioAplicado !== '' ? monedaAplicada : '';
+    for (const opcion of categoria.options) {
+      opcion.disabled = rutaInterna ? opcion.value !== 'Ruptura' : opcion.value === 'Ruptura';
+    }
+    if (rutaInterna) {
+      categoria.value = 'Ruptura';
+      wrapperCategoria.className = 'block rounded-xl border border-violet-200 bg-violet-50 p-3 transition';
+      wrapperCodigo.className = 'block rounded-xl border border-violet-200 bg-violet-50 p-3 transition';
+      wrapperPrecio.className = 'block rounded-xl border border-violet-200 bg-violet-50 p-3 transition';
+      categoria.classList.add('border-violet-300', 'bg-violet-50', 'font-semibold', 'text-violet-900');
+      campo.classList.add('border-violet-300', 'bg-violet-50', 'text-violet-900');
+      estadoCategoria.className = 'mt-1 block text-xs font-medium text-violet-800';
+      estadoCategoria.textContent = 'Ruptura asignada automáticamente: salida y llegada corresponden a la misma estación.';
+    } else {
+      if (categoria.value === 'Ruptura') categoria.value = 'Viaje completo';
+      wrapperCategoria.className = 'block rounded-xl transition';
+      wrapperCodigo.className = 'block rounded-xl transition';
+      wrapperPrecio.className = 'block rounded-xl transition';
+      categoria.classList.remove('border-violet-300', 'bg-violet-50', 'font-semibold', 'text-violet-900');
+      campo.classList.remove('border-violet-300', 'bg-violet-50', 'text-violet-900');
+      estadoCategoria.className = 'mt-1 block text-xs text-stone-400';
+      estadoCategoria.textContent = 'Ruptura se reserva para rutas dentro de la misma estación.';
+    }
+    if (!salida || !llegada) {
+      estado.className = 'mt-1 block text-xs text-stone-400';
+      estado.textContent = 'Seleccione salida y llegada.';
+    } else if (codigo) {
+      estado.className = 'mt-1 block text-xs text-green-700';
+      estado.textContent = 'Ruta configurada correctamente.';
+    } else {
+      estado.className = 'mt-1 block text-xs font-medium text-amber-700';
+      estado.innerHTML = 'Esta ruta no tiene código. <a class="underline" href="/configuracion#rutas">Configúrelo antes de guardar.</a>';
+    }
+    if (!salida || !llegada) {
+      estadoPrecio.className = 'mt-1 block text-xs text-stone-400';
+      estadoPrecio.textContent = 'Se completa con la tarifa configurada para la ruta.';
+    } else if (precioAplicado !== '') {
+      const simbolo = monedaAplicada === 'USD' ? '$' : '₡';
+      estadoPrecio.className = 'mt-1 block text-xs text-green-700';
+      estadoPrecio.textContent = `${usaHistorico ? 'Tarifa histórica del viaje' : 'Tarifa vigente'}: ${simbolo}${Number(precioAplicado).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+    } else if (codigo) {
+      estadoPrecio.className = 'mt-1 block text-xs font-medium text-amber-700';
+      estadoPrecio.innerHTML = 'Esta ruta no tiene precio vigente. <a class="underline" href="/configuracion#rutas">Configúrelo antes de guardar.</a>';
+    } else {
+      estadoPrecio.className = 'mt-1 block text-xs text-stone-400';
+      estadoPrecio.textContent = 'Configure primero el código y precio de la ruta.';
+    }
+  }
+  fechaInput?.addEventListener('change', actualizarSemana);
+  document.getElementById('ID_Salida')?.addEventListener('change', actualizarCodigoRuta);
+  document.getElementById('ID_Llegada')?.addEventListener('change', actualizarCodigoRuta);
+  actualizarSemana();
+  actualizarCodigoRuta(true);
+</script>
+{% if fila.ID_Viaje %}
+<form id="borrar" method="post" action="/viajes/{{ fila.ID_Viaje }}/eliminar" hx-boost="false" class="hidden"></form>
+{% endif %}
+{% endblock %}

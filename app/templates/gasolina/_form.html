@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, mostrar_errores, btn_ghost %}
+{% block heading %}{% if fila.ID_Registro %}Editar factura{% else %}Registrar factura{% endif %}{% endblock %}
+{% block actions %}{{ btn_ghost("/gasolina", "Volver") }}{% endblock %}
+{% block content %}
+<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-3xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+  {{ mostrar_errores(errores) }}
+  <p class="mb-4 text-sm text-stone-500">El precio por litro se calcula automáticamente dividiendo el total pagado entre los litros.</p>
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ select("TipoCombustible", "Gasolina", fila.TipoCombustible or "Diesel", choices.TipoCombustible, required=true) }}
+    {{ field("Fecha", "Fecha", fila.Fecha, type="date", required=true) }}
+    {{ field("CantidadComprada", "Litros", fila.CantidadComprada, type="number", step="0.001", required=true) }}
+    {{ field("MontoTotal", "Total pagado (CRC)", fila.MontoTotal, type="number", step="0.01", required=true) }}
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Placa del vehículo *</span>
+      <select id="ID_Camion" name="ID_Camion" required onchange="document.getElementById('ID_Chofer').value=this.options[this.selectedIndex].dataset.chofer||''" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for c in camiones %}<option value="{{ c.ID_Camion }}" data-chofer="{{ c.ID_ChoferDisponible or '' }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Chofer *</span>
+      <select id="ID_Chofer" name="ID_Chofer" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for c in choferes %}<option value="{{ c.ID_Chofer }}" {% if fila.ID_Chofer == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>{% endfor %}
+      </select>
+    </label>
+    {{ field("NumeroBoleta", "Número de boleta", fila.NumeroBoleta, required=true) }}
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Precio calculado por litro</span>
+      <output id="precio-calculado" class="block min-h-[42px] w-full rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-600">{{ fila.PrecioPorLitro|crc }}</output>
+    </label>
+    <input type="hidden" name="PrecioPorLitro" value="{{ fila.PrecioPorLitro or '' }}">
+    <input type="hidden" name="Moneda" value="CRC">
+  </div>
+  <div class="mt-6 flex items-center justify-between">
+    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar factura</button>
+    {% if fila.ID_Registro %}<button form="borrar" type="submit" class="text-sm text-red-700 hover:underline" onclick="return confirm('¿Eliminar esta factura?')">Eliminar</button>{% endif %}
+  </div>
+</form>
+<script>
+  function actualizarPrecioFactura() {
+    const litros = Number(document.querySelector('[name="CantidadComprada"]').value);
+    const total = Number(document.querySelector('[name="MontoTotal"]').value);
+    const precio = litros > 0 && total > 0 ? total / litros : 0;
+    document.getElementById('precio-calculado').textContent = precio ? '₡' + precio.toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : '—';
+  }
+  document.querySelector('[name="CantidadComprada"]')?.addEventListener('input', actualizarPrecioFactura);
+  document.querySelector('[name="MontoTotal"]')?.addEventListener('input', actualizarPrecioFactura);
+</script>
+{% if fila.ID_Registro %}<form id="borrar" method="post" action="/gasolina/{{ fila.ID_Registro }}/eliminar" hx-boost="false" class="hidden"></form>{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% block heading %}{% if fila.ID_Empresa %}Editar estación{% else %}Nueva estación{% endif %}{% endblock %}
+{% block actions %}{{ btn_ghost("/empresas", "Volver") }}{% endblock %}
+{% block content %}
+<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-2xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+  {{ mostrar_errores(errores) }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ field("NombreEmpresa", "Nombre", fila.NombreEmpresa, required=true) }}
+    {{ field("Contacto", "Contacto", fila.Contacto) }}
+    {{ field("Telefono", "Teléfono", fila.Telefono) }}
+    {{ field("Email", "Correo", fila.Email, type="email") }}
+    {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
+    {{ textarea("Notas", "Notas", fila.Notas) }}
+  </div>
+  <div class="mt-6 flex items-center justify-between">
+    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar</button>
+    {% if fila.ID_Empresa %}
+    <button form="estado" type="submit" class="text-sm text-stone-600 hover:underline"
+            onclick="return confirm('¿{{ 'Reactivar' if fila.Estado == 'Inactivo' else 'Archivar' }} esta estación?')">{{ "Reactivar" if fila.Estado == "Inactivo" else "Archivar" }}</button>
+    {% endif %}
+  </div>
+</form>
+{% if fila.ID_Empresa %}
+<form id="estado" method="post" action="/empresas/{{ fila.ID_Empresa }}/{{ 'reactivar' if fila.Estado == 'Inactivo' else 'archivar' }}" hx-boost="false" class="hidden"></form>
+{% endif %}
+{% endblock %}

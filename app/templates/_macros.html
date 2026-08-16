@@ -1,0 +1,60 @@
+{% macro btn_primary(href, label) -%}
+<a href="{{ href }}" class="inline-flex items-center rounded-full bg-forest px-4 py-2 text-sm font-medium text-paper shadow-sm hover:bg-forest-600">{{ label }}</a>
+{%- endmacro %}
+
+{% macro btn_ghost(href, label) -%}
+<a href="{{ href }}" class="inline-flex items-center rounded-full border border-stone-300 bg-white/70 px-4 py-2 text-sm text-forest hover:bg-white">{{ label }}</a>
+{%- endmacro %}
+
+{% macro field(name, label, value, type="text", required=false, step=none, min=none, placeholder="") -%}
+<label class="block">
+  <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">{{ label }}{% if required %} *{% endif %}</span>
+  <input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if step %}step="{{ step }}"{% endif %} {% if min is not none %}min="{{ min }}"{% endif %} placeholder="{{ placeholder }}"
+         class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+</label>
+{%- endmacro %}
+
+{% macro select(name, label, value, options, required=false, blank="") -%}
+<label class="block">
+  <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">{{ label }}{% if required %} *{% endif %}</span>
+  <select name="{{ name }}" {% if required %}required{% endif %}
+          class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+    {% if blank %}<option value="">{{ blank }}</option>{% endif %}
+    {% for opt in options %}
+      {% if opt is mapping %}
+        <option value="{{ opt.value }}" {% if value == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+      {% else %}
+        <option value="{{ opt }}" {% if value == opt %}selected{% endif %}>{{ opt }}</option>
+      {% endif %}
+    {% endfor %}
+  </select>
+</label>
+{%- endmacro %}
+
+{% macro textarea(name, label, value, rows=3) -%}
+<label class="block sm:col-span-2">
+  <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">{{ label }}</span>
+  <textarea name="{{ name }}" rows="{{ rows }}" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">{{ value or '' }}</textarea>
+</label>
+{%- endmacro %}
+
+{% macro mostrar_errores(lista) -%}
+{% if lista %}
+  <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+    <ul class="list-disc pl-4">{% for e in lista %}<li>{{ e }}</li>{% endfor %}</ul>
+  </div>
+{% endif %}
+{%- endmacro %}
+
+{% macro vacio(texto) -%}
+<div class="rounded-2xl border border-dashed border-stone-300 bg-white/50 px-6 py-16 text-center text-stone-500">{{ texto }}</div>
+{%- endmacro %}
+
+{% macro badge_estado(estado) -%}
+<span class="inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium
+  {% if estado == 'Activo' or estado == 'Pendiente' %}badge-verde
+  {% elif estado == 'Enviado a contadora' %}badge-amarillo
+  {% elif estado == 'Inactivo' or estado == 'Cancelado' %}badge-gris
+  {% elif estado == 'Renovado' %}badge-gris
+  {% else %}badge-gris{% endif %}">{{ estado }}</span>
+{%- endmacro %}

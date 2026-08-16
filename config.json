@@ -1,0 +1,46 @@
+{
+  "nombre_app": "Prisilla",
+  "nombre_empresa": "",
+  "umbral_amarillo_dias": 28,
+  "umbral_rojo_dias": 7,
+  "backups_conservar": 10,
+  "moneda": "CRC",
+  "marcas_camiones": [
+    "Freightliner",
+    "Patito",
+    "Volvo"
+  ],
+  "empresas_trabajo": [
+    "Terminal de Contenedores del Caribe"
+  ],
+  "rutas_configuradas": [
+    {
+      "salida": "EMP-005",
+      "llegada": "EMP-004",
+      "codigo": "73635",
+      "precio": 51000.0,
+      "moneda": "CRC"
+    },
+    {
+      "salida": "EMP-006",
+      "llegada": "EMP-006",
+      "codigo": "58510",
+      "precio": 10000.0,
+      "moneda": "CRC"
+    },
+    {
+      "salida": "EMP-005",
+      "llegada": "EMP-007",
+      "codigo": "35142",
+      "precio": 84000.0,
+      "moneda": "CRC"
+    },
+    {
+      "salida": "EMP-002",
+      "llegada": "EMP-003",
+      "codigo": "33321",
+      "precio": 23561.0,
+      "moneda": "CRC"
+    }
+  ]
+}

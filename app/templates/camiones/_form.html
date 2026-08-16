@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% block heading %}{% if fila.ID_Camion %}Editar camión{% else %}Nuevo camión{% endif %}{% endblock %}
+{% block actions %}{{ btn_ghost("/camiones", "Volver") }}{% endblock %}
+{% block content %}
+<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-2xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+  {{ mostrar_errores(errores) }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    {{ field("Placa", "Placa", fila.Placa, required=true) }}
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Marca *</span>
+      <select name="Marca" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for marca in marcas %}<option value="{{ marca }}" {% if fila.Marca == marca %}selected{% endif %}>{{ marca }}</option>{% endfor %}
+      </select>
+      <a href="/configuracion#marcas" class="mt-1 inline-block text-xs text-forest-400 hover:underline">Administrar marcas</a>
+    </label>
+    {{ field("Modelo", "Modelo", fila.Modelo) }}
+    {{ field("Anio", "Año", fila.Anio, type="number") }}
+    {{ field("Capacidad", "Capacidad", fila.Capacidad, placeholder="ej. 20 ton") }}
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Chofer predeterminado</span>
+      <select name="ID_ChoferPredeterminado" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Sin asignar</option>
+        {% for c in choferes %}
+        <option value="{{ c.ID_Chofer }}" {% if fila.ID_ChoferPredeterminado == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
+    {{ textarea("Notas", "Notas", fila.Notas) }}
+  </div>
+  <div class="mt-6 flex items-center justify-between">
+    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar</button>
+    {% if fila.ID_Camion %}
+    <button form="estado" type="submit" class="text-sm text-stone-600 hover:underline"
+            onclick="return confirm('¿{{ 'Reactivar' if fila.Estado == 'Inactivo' else 'Archivar' }} este camión?')">{{ "Reactivar" if fila.Estado == "Inactivo" else "Archivar" }}</button>
+    {% endif %}
+  </div>
+</form>
+{% if fila.ID_Camion %}
+<form id="estado" method="post" action="/camiones/{{ fila.ID_Camion }}/{{ 'reactivar' if fila.Estado == 'Inactivo' else 'archivar' }}" hx-boost="false" class="hidden"></form>
+{% endif %}
+{% endblock %}

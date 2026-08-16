@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% block heading %}{% if fila.ID_Seguro %}Editar póliza{% else %}Nueva póliza{% endif %}{% endblock %}
+{% block actions %}{{ btn_ghost("/seguros", "Volver") }}{% endblock %}
+{% block content %}
+<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-3xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+  {{ mostrar_errores(errores) }}
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="block">
+      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Camión *</span>
+      <select name="ID_Camion" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <option value="">Seleccione…</option>
+        {% for c in camiones %}
+        <option value="{{ c.ID_Camion }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }} — {{ c.Marca }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+        {% endfor %}
+      </select>
+    </label>
+    {{ select("TipoSeguro", "Tipo de seguro", fila.TipoSeguro, choices.TipoSeguro, required=true) }}
+    {{ field("Aseguradora", "Aseguradora", fila.Aseguradora) }}
+    {{ field("NumeroPoliza", "Número de póliza", fila.NumeroPoliza) }}
+    {{ select("Periodicidad", "Periodicidad", fila.Periodicidad, choices.Periodicidad, required=true) }}
+    {{ field("FechaInicio", "Fecha inicio", fila.FechaInicio, type="date", required=true) }}
+    {{ field("FechaFin", "Fecha fin", fila.FechaFin, type="date", required=true) }}
+    {{ field("MontoPrima", "Monto prima (CRC)", fila.MontoPrima, type="number", step="0.01") }}
+    {{ field("FechaUltimoPago", "Último pago", fila.FechaUltimoPago, type="date") }}
+    {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
+    <input type="hidden" name="Moneda" value="{{ fila.Moneda or 'CRC' }}">
+    {{ textarea("Notas", "Notas", fila.Notas) }}
+  </div>
+  <div class="mt-6 flex items-center justify-between">
+    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar</button>
+    {% if fila.ID_Seguro %}
+    <button form="borrar" type="submit" class="text-sm text-red-700 hover:underline"
+            onclick="return confirm('¿Eliminar esta póliza?')">Eliminar</button>
+    {% endif %}
+  </div>
+</form>
+{% if fila.ID_Seguro %}
+<form id="borrar" method="post" action="/seguros/{{ fila.ID_Seguro }}/eliminar" hx-boost="false" class="hidden"></form>
+{% endif %}
+{% endblock %}

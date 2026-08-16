@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import mostrar_errores %}
+{% block heading %}Pregúntale a la IA{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-stone-500">Analice viajes, gasolina, seguros y flota con Gemini. Solo lectura.</p>{% endblock %}
+{% block content %}
+<div class="grid max-w-5xl gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+  <section class="rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+    {% if not ia_lista %}
+    <div class="mb-5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+      Gemini todavía no está habilitado. <a href="/configuracion#gemini" class="font-semibold underline">Configure la API key</a> para comenzar.
+    </div>
+    {% endif %}
+    {{ mostrar_errores(errores) }}
+    <form method="post" action="/ia/preguntar" hx-boost="false">
+      <label class="block">
+        <span class="mb-2 block text-sm font-medium text-forest">¿Qué desea analizar?</span>
+        <textarea id="pregunta-ia" name="pregunta" rows="5" maxlength="1000" required placeholder="Ejemplo: ¿Qué chofer registra el mayor gasto de gasolina y durante qué período?" class="w-full resize-y rounded-xl border border-stone-300 px-4 py-3 text-sm outline-none ring-gold/40 focus:ring-2">{{ pregunta }}</textarea>
+      </label>
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <span class="text-xs text-stone-500">Modelo: {{ modelo }}</span>
+        <button type="submit" {% if not ia_lista %}disabled{% endif %} class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper disabled:cursor-not-allowed disabled:opacity-40">Preguntar</button>
+      </div>
+    </form>
+
+    {% if respuesta %}
+    <article class="mt-6 rounded-2xl border border-forest-100 bg-paper/60 p-5">
+      <p class="mb-2 text-xs font-semibold uppercase tracking-[0.15em] text-forest-400">Respuesta de Gemini</p>
+      <div class="whitespace-pre-wrap text-sm leading-7 text-stone-800">{{ respuesta }}</div>
+      <p class="mt-4 border-t border-stone-200 pt-3 text-xs text-stone-500">Verifique decisiones importantes contra los registros originales. La IA no modifica información.</p>
+    </article>
+    {% endif %}
+  </section>
+
+  <aside class="rounded-2xl border border-stone-200 bg-paper/70 p-5">
+    <h3 class="font-display text-xl text-forest">Ideas para preguntar</h3>
+    <div class="mt-3 flex flex-col gap-2">
+      {% for sugerencia in [
+        "¿Cuánto se ha gastado en gasolina por mes?",
+        "¿Qué chofer registra más gasto de combustible?",
+        "¿Cuál es la ruta con más viajes?",
+        "¿Qué seguros requieren atención pronto?",
+        "Dame un resumen ejecutivo de la operación."
+      ] %}
+      <button type="button" onclick="document.getElementById('pregunta-ia').value=this.textContent.trim(); document.getElementById('pregunta-ia').focus()" class="rounded-xl border border-stone-200 bg-white px-3 py-2 text-left text-sm text-stone-700 hover:border-gold">{{ sugerencia }}</button>
+      {% endfor %}
+    </div>
+    <div class="mt-5 border-t border-stone-200 pt-4 text-xs leading-5 text-stone-500">
+      BITACORA envía resúmenes calculados, no el libro completo. Excluye teléfonos, licencias, contactos, contenedores, chasis, guías y manifiestos.
+    </div>
+  </aside>
+</div>
+{% endblock %}

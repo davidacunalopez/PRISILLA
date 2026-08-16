@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% from "_macros.html" import btn_primary, vacio, badge_estado %}
+{% block heading %}Choferes{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-stone-500">Catálogo para evitar errores de nombre en la bitácora.</p>{% endblock %}
+{% block actions %}{{ btn_primary("/choferes/nuevo", "Nuevo chofer") }}{% endblock %}
+{% block content %}
+{% if filas %}
+<div class="table-wrap overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+  <table class="data w-full text-left text-sm">
+    <thead class="bg-paper/80">
+      <tr>
+        <th class="px-4 py-3">Nombre</th>
+        <th class="px-4 py-3">Teléfono</th>
+        <th class="px-4 py-3">Licencia</th>
+        <th class="px-4 py-3">Estado</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for c in filas %}
+      <tr class="border-t border-stone-100 hover:bg-paper/60">
+        <td class="px-4 py-3 font-medium">{{ c.Nombre }}</td>
+        <td class="px-4 py-3">{{ c.Telefono or "—" }}</td>
+        <td class="px-4 py-3">{{ c.Licencia or "—" }}</td>
+        <td class="px-4 py-3">{{ badge_estado(c.Estado) }}</td>
+        <td class="px-4 py-3 text-right whitespace-nowrap">
+          <a class="text-forest-400 hover:underline" href="/choferes/{{ c.ID_Chofer }}/editar">Editar</a>
+          <span class="mx-1 text-stone-300">·</span>
+          <form method="post" action="/choferes/{{ c.ID_Chofer }}/{{ 'reactivar' if c.Estado == 'Inactivo' else 'archivar' }}" class="inline" hx-boost="false">
+            <button class="text-stone-500 hover:underline" type="submit" onclick="return confirm('¿{{ 'Reactivar' if c.Estado == 'Inactivo' else 'Archivar' }} este chofer?')">{{ "Reactivar" if c.Estado == "Inactivo" else "Archivar" }}</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+{{ vacio("No hay choferes registrados.") }}
+{% endif %}
+{% endblock %}

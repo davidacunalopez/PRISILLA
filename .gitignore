@@ -1,0 +1,30 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# Credenciales y temporales
+.env
+.env.*
+!.env.example
+*.tmp
+*~
+
+# Excel, respaldos y exportaciones (datos operativos, nunca al repo)
+*.xlsx
+*.xls
+*.xlsm
+*.xlsb
+*.csv
+~$*
+data/basedatos.xlsx
+data/basedatos*.xlsx
+data/backups/*
+!data/backups/.gitkeep
+data/exportaciones/*
+!data/.gitkeep
+
+.idea/
+.vscode/
+*.log

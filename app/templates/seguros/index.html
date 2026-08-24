@@ -15,8 +15,8 @@
   </label>
 </form>
 {% if filas %}
-<div class="table-wrap overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
-  <table class="data w-full text-left text-sm">
+<div class="table-wrap overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
+  <table class="data min-w-[1100px] w-full text-left text-sm">
     <thead class="bg-paper/80">
       <tr>
         <th class="px-4 py-3">Urgencia</th>
@@ -25,6 +25,7 @@
         <th class="px-4 py-3">Aseguradora</th>
         <th class="px-4 py-3">Póliza</th>
         <th class="px-4 py-3">Vence</th>
+        <th class="px-4 py-3">Fecha límite de pago</th>
         <th class="px-4 py-3">Prima</th>
         <th class="px-4 py-3">Estado</th>
         <th class="px-4 py-3"></th>
@@ -48,6 +49,7 @@
         <td class="px-4 py-3">{{ s.Aseguradora or "—" }}</td>
         <td class="px-4 py-3">{{ s.NumeroPoliza or "—" }}</td>
         <td class="px-4 py-3">{{ s.FechaFin|fecha }}</td>
+        <td class="px-4 py-3">{{ s.FechaUltimoPago|fecha }}</td>
         <td class="px-4 py-3">{{ s.monto_txt }}</td>
         <td class="px-4 py-3">{{ badge_estado(s.Estado) }}</td>
         <td class="px-4 py-3 text-right whitespace-nowrap">

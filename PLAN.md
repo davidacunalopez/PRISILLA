@@ -16,7 +16,7 @@ Un solo libro `data/basedatos.xlsx`, con una hoja por entidad, cada una formatea
 
 **Camiones**: ID_Camion, Placa, Marca, Modelo, Anio, Capacidad, Estado (Activo/Inactivo), Notas, ID_ChoferPredeterminado (FK opcional→Choferes)
 
-**Seguros** (una fila por póliza/período; "Renovar" crea la siguiente fila y marca la anterior): ID_Seguro, ID_Camion (FK), TipoSeguro (Auto/Carga/Riesgos Laborales), Aseguradora, NumeroPoliza, Periodicidad (Mensual/Semestral), FechaInicio, FechaFin, MontoPrima, Moneda, Estado (Activo/Renovado/Cancelado — ciclo de vida, no el semáforo), FechaUltimoPago, Notas
+**Seguros** (una fila por póliza/período; "Renovar" crea la siguiente fila y marca la anterior): ID_Seguro, ID_Camion (FK), TipoSeguro (Auto/Carga/Riesgos Laborales), Aseguradora, NumeroPoliza, Periodicidad (Mensual/Trimestral), FechaInicio, FechaFin, MontoPrima, Moneda, Estado (Activo/Renovado/Cancelado — ciclo de vida, no el semáforo), FechaUltimoPago (mostrada como Fecha límite de pago y sincronizada con FechaFin), Notas
 
 **Estaciones** (hoja interna `Empresas` por compatibilidad; puntos de salida o llegada): ID_Empresa, NombreEmpresa, Contacto, Telefono, Email, Notas, Estado
 

@@ -19,7 +19,7 @@ No abra `basedatos.xlsx` en Excel mientras la app está en uso: el archivo queda
 | --- | --- |
 | Tablero | Semáforo de pólizas (rojo ≤ 7 días o vencido, amarillo 8–28 días, verde > 28). |
 | Camiones | Alta de la flota y asignación opcional de un chofer habitual. |
-| Seguros | Pólizas Auto / Carga / Riesgos Laborales. **Renovar** cierra el período y crea el siguiente. |
+| Seguros | Pólizas Auto / Carga / Riesgos Laborales, mensuales o trimestrales. La fecha límite de pago se sincroniza con la fecha fin; **Renovar** cierra el período y crea el siguiente. |
 | Estaciones y choferes | Catálogos operativos para la bitácora; se archivan sin perder el historial. |
 | Viajes | Registro por fecha con semana ISO automática, categoría, código de ruta, empresa de trabajo, tarifa/moneda, camión/chofer y exportación Excel/CSV. Incluye columnas configurables, control booleano de envío y generación agrupada del mensaje para la contadora. |
 | Gasolina | Facturas por tipo de combustible, vehículo y chofer; precio por litro automático, filtros por período, comparación mensual y gráficos con participación del gasto. |
@@ -44,6 +44,7 @@ Excel admite hasta 1.048.576 filas por hoja, pero la aplicación se volverá len
 
 - **Exportar Excel/CSV** en Viajes guarda el resultado filtrado en `data/exportaciones/`. La pantalla confirma el nombre generado y permite abrir esa carpeta. Este flujo funciona tanto en la ventana de escritorio como en el navegador.
 - **Generar mensaje** usa los viajes pendientes del filtro actual, los agrupa por empresa y código, prepara un texto listo para copiar y los marca como enviados. La opción **Con IA** mejora únicamente la redacción; BITACORA rechaza cualquier respuesta que altere las cifras calculadas.
+- El filtro **Precio** de la bitácora busca la tarifa exacta; los filtros **Desde** y **Hasta** continúan funcionando como rango de fechas.
 - La casilla **Enviada** congela la tarifa del viaje. Si se desmarca, el viaje vuelve a pendiente y recupera la tarifa vigente de la ruta. El selector **Columnas** permite mostrar u ocultar los datos secundarios y recuerda la preferencia en ese equipo.
 - **Importar respaldo** está en Configuración. Solo acepta libros `.xlsx` válidos con la estructura de BITACORA, los migra si pertenecen a una versión anterior compatible y, antes de reemplazar los datos actuales, crea automáticamente otro respaldo de seguridad.
 - La importación reemplaza el libro activo completo. La pantalla muestra una advertencia y solicita confirmación explícita porque los registros posteriores al respaldo dejarán de aparecer.

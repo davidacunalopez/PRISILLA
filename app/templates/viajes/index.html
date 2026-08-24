@@ -105,12 +105,8 @@
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Precio mínimo</span>
-    <input type="number" min="0" step="0.01" name="precio_min" value="{{ filtros.precio_min or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
-  </label>
-  <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Precio máximo</span>
-    <input type="number" min="0" step="0.01" name="precio_max" value="{{ filtros.precio_max or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Precio</span>
+    <input type="number" min="0" step="0.01" name="precio" value="{{ filtros.precio or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" placeholder="Tarifa exacta">
   </label>
   <label class="text-sm">
     <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Enviada</span>

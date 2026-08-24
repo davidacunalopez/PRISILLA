@@ -211,11 +211,8 @@ def _filtrar(filas: list[dict], q: dict) -> list[dict]:
         if codigo and codigo not in str(f.get("CodigoRuta") or "").casefold():
             continue
         precio = a_float(f.get("Precio"))
-        precio_min = str(q.get("precio_min") or "").strip()
-        precio_max = str(q.get("precio_max") or "").strip()
-        if precio_min and precio < a_float(precio_min):
-            continue
-        if precio_max and precio > a_float(precio_max):
+        precio_buscado = str(q.get("precio") or "").strip()
+        if precio_buscado and abs(precio - a_float(precio_buscado)) >= 0.005:
             continue
         enviada = str(q.get("enviada") or "").strip()
         esta_enviada = es_verdadero(f.get("Enviada")) or f.get("Estado") == "Enviado a contadora"
@@ -278,7 +275,7 @@ async def lista(request: Request):
     templates = request.app.state.templates
     permitidos = {
         "desde", "hasta", "semana", "salida", "llegada", "contenedor", "chasis", "guia",
-        "moneda", "empresa_trabajo", "codigo", "precio_min", "precio_max", "categoria", "enviada",
+        "moneda", "empresa_trabajo", "codigo", "precio", "categoria", "enviada",
     }
     q = {k: v for k, v in request.query_params.items() if k in permitidos}
     filas = _enriquecer(_filtrar(excel_repo.leer(HOJA), q))
@@ -303,7 +300,7 @@ async def generar_mensaje(request: Request):
     form = await request.form()
     permitidos = {
         "desde", "hasta", "semana", "salida", "llegada", "contenedor", "chasis", "guia",
-        "moneda", "empresa_trabajo", "codigo", "precio_min", "precio_max", "categoria", "enviada",
+        "moneda", "empresa_trabajo", "codigo", "precio", "categoria", "enviada",
     }
     q = {k: v for k, v in parse_qsl(str(form.get("query") or "")) if k in permitidos}
     todas = _filtrar(excel_repo.leer(HOJA), q)

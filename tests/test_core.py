@@ -82,7 +82,7 @@ class LibroTemporalTest(unittest.TestCase):
             {
                 "ID_Camion": camion["ID_Camion"],
                 "TipoSeguro": "Auto",
-                "Periodicidad": "Semestral",
+                "Periodicidad": "Trimestral",
                 "FechaInicio": "2026-01-01",
                 "FechaFin": "2026-06-30",
                 "Moneda": "CRC",
@@ -101,8 +101,37 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertEqual(len(filas), 2)
         self.assertEqual(filas[0]["Estado"], "Renovado")
         self.assertEqual(filas[1]["FechaInicio"], "2026-07-01")
-        self.assertEqual(filas[1]["FechaFin"], "2026-12-31")
+        self.assertEqual(filas[1]["FechaFin"], "2026-09-30")
+        self.assertEqual(filas[1]["FechaUltimoPago"], "2026-09-30")
         self.assertEqual(filas[1]["Estado"], "Activo")
+
+    def test_seguro_usa_fecha_fin_como_fecha_limite_de_pago(self):
+        camion = excel_repo.insertar(
+            "Camiones", {"Placa": "POL1", "Marca": "M", "Estado": "Activo"}
+        )
+        respuesta = TestClient(app).post(
+            "/seguros",
+            data={
+                "ID_Camion": camion["ID_Camion"],
+                "TipoSeguro": "Auto",
+                "Periodicidad": "Mensual",
+                "FechaInicio": "2026-08-01",
+                "FechaFin": "2026-08-31",
+                "FechaUltimoPago": "2020-01-01",
+                "Estado": "Activo",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(respuesta.status_code, 303)
+        seguro = excel_repo.leer("Seguros")[0]
+        self.assertEqual(seguro["FechaUltimoPago"], "2026-08-31")
+
+        formulario = TestClient(app).get("/seguros/nuevo")
+        self.assertIn("Fecha límite de pago", formulario.text)
+        self.assertIn('name="FechaUltimoPago"', formulario.text)
+        self.assertIn("readonly", formulario.text)
+        self.assertIn(">Trimestral</option>", formulario.text)
+        self.assertNotIn(">Semestral</option>", formulario.text)
 
     def test_respaldos_consecutivos_tienen_nombres_unicos(self):
         excel_repo.insertar("Camiones", {"Placa": "A1", "Marca": "M", "Estado": "Activo"})
@@ -194,10 +223,12 @@ class LibroTemporalTest(unittest.TestCase):
         pagina = TestClient(app).get("/viajes")
         for campo in (
             "desde", "hasta", "salida", "llegada", "contenedor", "chasis", "guia",
-            "codigo", "empresa_trabajo", "moneda", "precio_min", "precio_max",
+            "codigo", "empresa_trabajo", "moneda", "precio",
             "categoria", "enviada",
         ):
             self.assertIn(f'name="{campo}"', pagina.text)
+        self.assertNotIn('name="precio_min"', pagina.text)
+        self.assertNotIn('name="precio_max"', pagina.text)
 
     def test_validacion_rechaza_precio_negativo(self):
         errores = validar(
@@ -481,8 +512,10 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertEqual(viaje["Moneda"], "USD")
         self.assertEqual(viaje["Categoria"], "Desvío")
 
-        filtrada = cliente.get("/viajes?moneda=USD&precio_min=100&precio_max=130&codigo=51")
+        filtrada = cliente.get("/viajes?moneda=USD&precio=125.50&codigo=51")
         self.assertIn("RUTA1", filtrada.text)
+        precio_distinto = cliente.get("/viajes?precio=125.51")
+        self.assertNotIn("RUTA1", precio_distinto.text)
         fuera = cliente.get("/viajes?moneda=CRC")
         self.assertNotIn("RUTA1", fuera.text)
 
@@ -686,6 +719,29 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertEqual(viaje["Moneda"], "CRC")
         self.assertEqual(viaje["Categoria"], "Viaje completo")
         self.assertFalse(viaje["Enviada"])
+
+    def test_migracion_actualiza_periodicidad_y_fecha_limite_de_seguros(self):
+        camion = excel_repo.insertar(
+            "Camiones", {"Placa": "MIG1", "Marca": "M", "Estado": "Activo"}
+        )
+        seguro = excel_repo.insertar(
+            "Seguros",
+            {
+                "ID_Camion": camion["ID_Camion"],
+                "TipoSeguro": "Auto",
+                "Periodicidad": "Semestral",
+                "FechaInicio": "2026-01-01",
+                "FechaFin": "2026-06-30",
+                "FechaUltimoPago": "2026-05-15",
+                "Estado": "Activo",
+            },
+        )
+
+        plantilla_base.migrar_libro(self.excel, crear_backup_previo=False)
+
+        migrado = excel_repo.leer_por_id("Seguros", seguro["ID_Seguro"])
+        self.assertEqual(migrado["Periodicidad"], "Trimestral")
+        self.assertEqual(migrado["FechaUltimoPago"], "2026-06-30")
 
     def test_mensaje_contadora_agrupa_y_marca_solo_pendientes(self):
         salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "Monte Verde", "Estado": "Activo"})

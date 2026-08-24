@@ -47,7 +47,7 @@ HOJAS: dict[str, dict[str, Any]] = {
         "required": ["ID_Camion", "TipoSeguro", "Periodicidad", "FechaInicio", "FechaFin", "Estado"],
         "choices": {
             "TipoSeguro": ["Auto", "Carga", "Riesgos Laborales"],
-            "Periodicidad": ["Mensual", "Semestral"],
+            "Periodicidad": ["Mensual", "Trimestral"],
             "Estado": ["Activo", "Renovado", "Cancelado"],
             "Moneda": ["CRC"],
         },
@@ -152,7 +152,7 @@ HOJAS: dict[str, dict[str, Any]] = {
 }
 
 TIPOS_SEGURO = HOJAS["Seguros"]["choices"]["TipoSeguro"]
-PERIODICIDAD_MESES = {"Mensual": 1, "Semestral": 6}
+PERIODICIDAD_MESES = {"Mensual": 1, "Trimestral": 3}
 
 
 def columnas(hoja: str) -> list[str]:

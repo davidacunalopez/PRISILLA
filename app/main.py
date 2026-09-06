@@ -37,6 +37,7 @@ def crear_app() -> FastAPI:
     templates.env.filters["fecha"] = mostrar_fecha
     templates.env.filters["crc"] = formato_crc
     templates.env.globals["configuracion_general"] = load_config
+    templates.env.globals["static_version"] = str(int((APP_DIR / "static" / "app.css").stat().st_mtime))
     app.state.templates = templates
 
     @app.middleware("http")

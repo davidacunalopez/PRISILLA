@@ -1,8 +1,10 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block heading %}{{ titulo }}{% endblock %}
 {% block content %}
-<div class="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-6 py-8">
-  <p class="text-stone-800">{{ mensaje }}</p>
-  <a href="/" class="mt-6 inline-flex rounded-full bg-forest px-4 py-2 text-sm text-paper">Volver al tablero</a>
+<div class="max-w-xl rounded-2xl border border-amber-200 bg-amber-50 px-6 py-8 dark:border-amber-900/50 dark:bg-surface2">
+  <span class="mb-3 flex h-11 w-11 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">{{ icon("alert-triangle", "w-5 h-5") }}</span>
+  <p class="text-ink">{{ mensaje }}</p>
+  <a href="/" class="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">{{ icon("home", "w-4 h-4") }} Volver al tablero</a>
 </div>
 {% endblock %}

@@ -329,7 +329,7 @@ class LibroTemporalTest(unittest.TestCase):
         menu = pagina.split("<nav", 1)[1].split("</nav>", 1)[0]
         posiciones = [menu.index(nombre) for nombre in ("Tablero", "Viajes", "Gasolina", "Camiones", "Seguros", "Estaciones", "Choferes")]
         self.assertEqual(posiciones, sorted(posiciones))
-        self.assertGreaterEqual(pagina.count("font-semibold text-gold"), 2)
+        self.assertGreaterEqual(pagina.count("font-semibold text-accent"), 2)
 
     def test_marcas_se_administran_desde_configuracion(self):
         cliente = TestClient(app)

@@ -1,24 +1,17 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, textarea, mostrar_errores %}
+{% from "_macros.html" import field, textarea, mostrar_errores, alert, card %}
+{% from "_icons.html" import icon %}
 {% block heading %}Configuración general{% endblock %}
-{% block subhead %}<p class="mt-1 text-sm text-stone-500">Identidad de la aplicación, alertas y conservación de respaldos.</p>{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-soft">Identidad de la aplicación, alertas y conservación de respaldos.</p>{% endblock %}
 {% block content %}
-{% if guardado %}
-<div class="mb-4 max-w-3xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">Configuración guardada correctamente.</div>
-{% endif %}
-{% if importado %}
-<div class="mb-4 max-w-3xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">Respaldo importado correctamente. La información anterior se conservó como un nuevo respaldo.</div>
-{% endif %}
-{% if ia_guardada %}
-<div class="mb-4 max-w-3xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">Configuración de Gemini guardada correctamente.</div>
-{% endif %}
-{% if ia_probada %}
-<div class="mb-4 max-w-3xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">Conexión con Gemini verificada correctamente: API key y modelo operativos.</div>
-{% endif %}
-{% if ruta_guardada %}
-<div class="mb-4 max-w-3xl rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">Código de ruta guardado correctamente.</div>
-{% endif %}
-<form method="post" action="/configuracion" hx-boost="false" class="max-w-3xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+{% if guardado %}{{ alert("success", message="Configuración guardada correctamente.") }}{% endif %}
+{% if importado %}{{ alert("success", message="Respaldo importado correctamente. La información anterior se conservó como un nuevo respaldo.") }}{% endif %}
+{% if ia_guardada %}{{ alert("success", message="Configuración de Gemini guardada correctamente.") }}{% endif %}
+{% if ia_probada %}{{ alert("success", message="Conexión con Gemini verificada correctamente: API key y modelo operativos.") }}{% endif %}
+{% if ruta_guardada %}{{ alert("success", message="Código de ruta guardado correctamente.") }}{% endif %}
+
+{% call card(cls="max-w-3xl") %}
+<form method="post" action="/configuracion" hx-boost="false">
   {{ mostrar_errores(errores) }}
   <div class="grid gap-4 sm:grid-cols-2">
     {{ field("nombre_app", "Nombre de la aplicación", cfg.nombre_app, required=true) }}
@@ -28,69 +21,70 @@
     {{ field("umbral_rojo_dias", "Rojo: días o menos", cfg.umbral_rojo_dias, type="number", required=true) }}
     {{ field("umbral_amarillo_dias", "Amarillo: días o menos", cfg.umbral_amarillo_dias, type="number", required=true) }}
   </div>
-  <p class="mt-4 text-sm text-stone-500">Con la configuración recomendada: verde con más de 28 días, amarillo de 8 a 28 días y rojo con 7 días o menos. El correo diario se envía solo para pólizas rojas.</p>
-  <div id="marcas" class="mt-6 border-t border-stone-200 pt-6">
-    <h3 class="font-display text-2xl text-forest">Marcas de camiones</h3>
-    <p class="mb-4 mt-1 text-sm text-stone-500">Escriba una marca por línea. Estas serán las opciones disponibles al crear o editar un camión.</p>
+  <p class="mt-4 text-sm text-soft">Con la configuración recomendada: verde con más de 28 días, amarillo de 8 a 28 días y rojo con 7 días o menos. El correo diario se envía solo para pólizas rojas.</p>
+  <div id="marcas" class="mt-6 border-t border-line pt-6">
+    <h3 class="font-display text-lg font-semibold text-ink">Marcas de camiones</h3>
+    <p class="mb-4 mt-1 text-sm text-soft">Escriba una marca por línea. Estas serán las opciones disponibles al crear o editar un camión.</p>
     {{ textarea("marcas_camiones", "Catálogo de marcas", cfg.marcas_camiones|join('\n'), rows=8) }}
   </div>
-  <div id="empresas-trabajo" class="mt-6 border-t border-stone-200 pt-6">
-    <h3 class="font-display text-2xl text-forest">Empresas para las que se trabaja</h3>
-    <p class="mb-4 mt-1 text-sm text-stone-500">Escriba una empresa por línea. Aparecerán como opciones al registrar un viaje.</p>
+  <div id="empresas-trabajo" class="mt-6 border-t border-line pt-6">
+    <h3 class="font-display text-lg font-semibold text-ink">Empresas para las que se trabaja</h3>
+    <p class="mb-4 mt-1 text-sm text-soft">Escriba una empresa por línea. Aparecerán como opciones al registrar un viaje.</p>
     {{ textarea("empresas_trabajo", "Catálogo de empresas", cfg.empresas_trabajo|join('\n'), rows=6) }}
   </div>
-  <button type="submit" class="mt-6 rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar configuración</button>
+  <button type="submit" class="mt-6 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar configuración</button>
 </form>
+{% endcall %}
 
-<section id="rutas" class="mt-6 max-w-5xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
-  <h3 class="font-display text-2xl text-forest">Códigos de rutas</h3>
-  <p class="mt-1 text-sm text-stone-500">Cada combinación es direccional y guarda su código, precio vigente y moneda. Al actualizarla, cambia los viajes pendientes; los ya enviados conservan su precio.</p>
+<div class="mt-6"></div>
+{% call card(title="Códigos de rutas", subtitle="Cada combinación es direccional y guarda su código, precio vigente y moneda. Al actualizarla, cambia los viajes pendientes; los ya enviados conservan su precio.", cls="max-w-5xl") %}
+<section id="rutas">
   {% if estaciones_activas|length >= 1 %}
-  <form id="form-ruta" method="post" action="/configuracion/rutas" hx-boost="false" class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+  <form id="form-ruta" method="post" action="/configuracion/rutas" hx-boost="false" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Salida *</span>
-      <select id="ruta-salida" name="ID_Salida" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Salida <span class="text-accent">*</span></span>
+      <select id="ruta-salida" name="ID_Salida" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
         <option value="">Seleccione…</option>
         {% for e in estaciones_activas %}<option value="{{ e.ID_Empresa }}">{{ e.NombreEmpresa }}</option>{% endfor %}
       </select>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Llegada *</span>
-      <select id="ruta-llegada" name="ID_Llegada" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Llegada <span class="text-accent">*</span></span>
+      <select id="ruta-llegada" name="ID_Llegada" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
         <option value="">Seleccione…</option>
         {% for e in estaciones_activas %}<option value="{{ e.ID_Empresa }}">{{ e.NombreEmpresa }}</option>{% endfor %}
       </select>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Código *</span>
-      <input id="ruta-codigo" type="text" name="Codigo" maxlength="50" required class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm" placeholder="Ej. 51">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Código <span class="text-accent">*</span></span>
+      <input id="ruta-codigo" type="text" name="Codigo" maxlength="50" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" placeholder="Ej. 51">
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Precio *</span>
-      <input id="ruta-precio" type="number" name="Precio" min="0.01" step="0.01" required class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm" placeholder="0.00">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Precio <span class="text-accent">*</span></span>
+      <input id="ruta-precio" type="number" name="Precio" min="0.01" step="0.01" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" placeholder="0.00">
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Moneda *</span>
-      <select id="ruta-moneda" name="Moneda" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Moneda <span class="text-accent">*</span></span>
+      <select id="ruta-moneda" name="Moneda" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
         <option value="CRC">CRC · Colones</option><option value="USD">USD · Dólares</option>
       </select>
     </label>
-    <div id="aviso-ruta-interna" class="hidden rounded-xl border border-violet-200 bg-violet-50 px-4 py-3 text-sm text-violet-900 sm:col-span-3">
+    <div id="aviso-ruta-interna" class="hidden rounded-xl border border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-900 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200 sm:col-span-3">
       <strong>Ruta interna especial:</strong> al usar esta combinación en un viaje, la categoría será automáticamente <strong>Ruptura</strong>.
     </div>
-    <div class="sm:col-span-2 lg:col-span-5"><button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar o actualizar ruta</button></div>
+    <div class="sm:col-span-2 lg:col-span-5"><button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar o actualizar ruta</button></div>
   </form>
   {% else %}
-  <p class="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">Registre al menos una estación antes de configurar códigos de ruta.</p>
+  {{ alert("warning", message="Registre al menos una estación antes de configurar códigos de ruta.") }}
   {% endif %}
 
   {% if rutas_configuradas %}
-  <div class="mt-6 overflow-hidden rounded-xl border border-stone-200">
+  <div class="mt-6 overflow-hidden rounded-xl border border-line">
     <table class="w-full text-left text-sm">
-      <thead class="bg-paper/80"><tr><th class="px-4 py-3">Salida</th><th class="px-4 py-3">Llegada</th><th class="px-4 py-3">Código</th><th class="px-4 py-3">Precio vigente</th><th class="px-4 py-3"></th></tr></thead>
-      <tbody>{% for ruta in rutas_configuradas %}<tr class="border-t {% if ruta.interna %}border-violet-200 bg-violet-50/70{% else %}border-stone-100{% endif %}">
-        <td class="px-4 py-3">{{ ruta.salida }}{% if ruta.interna %}<span class="ml-2 inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-800">Ruptura · ruta interna</span>{% endif %}</td><td class="px-4 py-3">{{ ruta.llegada }}</td><td class="px-4 py-3 font-medium {% if ruta.interna %}text-violet-800{% endif %}">{{ ruta.codigo }}</td><td class="px-4 py-3 font-medium">{{ ruta.precio_txt }}{% if ruta.precio is not none and ruta.precio != '' %} <span class="text-xs text-stone-400">{{ ruta.moneda }}</span>{% endif %}</td>
-        <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" data-salida="{{ ruta.salida_id }}" data-llegada="{{ ruta.llegada_id }}" data-codigo="{{ ruta.codigo }}" data-precio="{{ ruta.precio }}" data-moneda="{{ ruta.moneda }}" onclick="editarRuta(this)" class="mr-3 text-forest-400 hover:underline">Editar</button><form method="post" action="/configuracion/rutas/{{ ruta.salida_id }}/{{ ruta.llegada_id }}/eliminar" hx-boost="false" class="inline"><button type="submit" onclick="return confirm('¿Eliminar esta ruta configurada? Los viajes históricos conservarán su código y precio.')" class="text-red-700 hover:underline">Eliminar</button></form></td>
+      <thead class="bg-surface2"><tr><th class="px-4 py-3">Salida</th><th class="px-4 py-3">Llegada</th><th class="px-4 py-3">Código</th><th class="px-4 py-3">Precio vigente</th><th class="px-4 py-3"></th></tr></thead>
+      <tbody>{% for ruta in rutas_configuradas %}<tr class="border-t {% if ruta.interna %}border-violet-200 bg-violet-50/70 dark:border-violet-500/20 dark:bg-violet-500/5{% else %}border-line{% endif %}">
+        <td class="px-4 py-3">{{ ruta.salida }}{% if ruta.interna %}<span class="ml-2 inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">Ruptura · ruta interna</span>{% endif %}</td><td class="px-4 py-3">{{ ruta.llegada }}</td><td class="px-4 py-3 font-medium {% if ruta.interna %}text-violet-700 dark:text-violet-300{% endif %}">{{ ruta.codigo }}</td><td class="px-4 py-3 font-medium">{{ ruta.precio_txt }}{% if ruta.precio is not none and ruta.precio != '' %} <span class="text-xs text-soft">{{ ruta.moneda }}</span>{% endif %}</td>
+        <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" data-salida="{{ ruta.salida_id }}" data-llegada="{{ ruta.llegada_id }}" data-codigo="{{ ruta.codigo }}" data-precio="{{ ruta.precio }}" data-moneda="{{ ruta.moneda }}" onclick="editarRuta(this)" class="mr-3 text-primary hover:underline">Editar</button><form method="post" action="/configuracion/rutas/{{ ruta.salida_id }}/{{ ruta.llegada_id }}/eliminar" hx-boost="false" class="inline"><button type="submit" onclick="return confirm('¿Eliminar esta ruta configurada? Los viajes históricos conservarán su código y precio.')" class="text-red-600 hover:underline">Eliminar</button></form></td>
       </tr>{% endfor %}</tbody>
     </table>
   </div>
@@ -119,58 +113,58 @@
     })();
   </script>
 </section>
+{% endcall %}
 
-<section id="gemini" class="mt-6 max-w-3xl rounded-2xl border border-forest-100 bg-white p-6 shadow-sm">
-  <div class="flex flex-wrap items-start justify-between gap-3">
-    <div>
-      <h3 class="font-display text-2xl text-forest">Gemini · Pregúntale a la IA</h3>
-      <p class="mt-1 text-sm text-stone-500">La clave se guarda únicamente en el archivo privado <code>.env</code>.</p>
-    </div>
+<div class="mt-6"></div>
+{% call card(cls="max-w-3xl") %}
+<div class="flex flex-wrap items-start justify-between gap-3">
+  <div>
+    <h3 class="font-display text-lg font-semibold text-ink">Gemini · Pregúntale a la IA</h3>
+    <p class="mt-1 text-sm text-soft">La clave se guarda únicamente en el archivo privado <code>.env</code>.</p>
+  </div>
+  {% if ia_cfg.api_key %}
+  <span class="inline-flex items-center gap-1.5 rounded-full badge-verde px-3 py-1 text-xs font-medium">{{ icon("check-circle", "w-3.5 h-3.5") }} Clave configurada</span>
+  {% else %}
+  <span class="inline-flex items-center gap-1.5 rounded-full badge-amarillo px-3 py-1 text-xs font-medium">{{ icon("alert-triangle", "w-3.5 h-3.5") }} Sin API key</span>
+  {% endif %}
+</div>
+<form method="post" action="/configuracion/ia" hx-boost="false" class="mt-5">
+  <div class="grid gap-4 sm:grid-cols-2">
+    <label class="block sm:col-span-2">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Gemini API key</span>
+      <input type="password" name="gemini_api_key" autocomplete="new-password" placeholder="{% if ia_cfg.api_key %}Dejar vacío para conservar la clave actual{% else %}Pegue aquí su API key{% endif %}" class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+    </label>
+    {{ field("gemini_model", "Modelo", ia_cfg.model, required=true) }}
+    <label class="flex items-center gap-3 rounded-xl border border-line bg-surface2 px-4 py-3">
+      <input type="checkbox" name="gemini_enabled" value="1" {% if ia_cfg.enabled %}checked{% endif %} class="h-4 w-4 accent-primary">
+      <span class="text-sm text-ink">Habilitar Pregúntale a la IA</span>
+    </label>
+  </div>
+  <p class="mt-4 text-xs leading-5 text-soft">La consulta se procesa por Internet. BITACORA envía resúmenes operativos, incluyendo nombres de choferes y placas cuando son necesarios para responder, pero excluye datos personales y documentos de viaje.</p>
+  <div class="mt-5 flex flex-wrap gap-2">
+    <button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar Gemini</button>
+    {% if ia_cfg.api_key and ia_cfg.enabled %}
+    <button form="probar-gemini" type="submit" class="inline-flex items-center gap-1.5 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-2.5 text-sm font-medium text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-500/10 dark:text-emerald-400">{{ icon("sparkle", "w-4 h-4") }} Probar conexión</button>
+    {% endif %}
     {% if ia_cfg.api_key %}
-    <span class="rounded-full bg-green-50 px-3 py-1 text-xs font-medium text-green-800">Clave configurada</span>
-    {% else %}
-    <span class="rounded-full bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900">Sin API key</span>
+    <button type="submit" name="eliminar_clave" value="1" onclick="return confirm('¿Desea eliminar la API key guardada y deshabilitar Gemini?')" class="rounded-xl border border-red-200 px-5 py-2.5 text-sm text-red-600 dark:border-red-900/50">Eliminar clave</button>
     {% endif %}
   </div>
-  <form method="post" action="/configuracion/ia" hx-boost="false" class="mt-5">
-    <div class="grid gap-4 sm:grid-cols-2">
-      <label class="block sm:col-span-2">
-        <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Gemini API key</span>
-        <input type="password" name="gemini_api_key" autocomplete="new-password" placeholder="{% if ia_cfg.api_key %}Dejar vacío para conservar la clave actual{% else %}Pegue aquí su API key{% endif %}" class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-      </label>
-      <label class="block">
-        <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Modelo</span>
-        <input type="text" name="gemini_model" value="{{ ia_cfg.model }}" required class="w-full rounded-xl border border-stone-300 px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-      </label>
-      <label class="flex items-center gap-3 rounded-xl border border-stone-200 px-4 py-3">
-        <input type="checkbox" name="gemini_enabled" value="1" {% if ia_cfg.enabled %}checked{% endif %} class="h-4 w-4 accent-forest">
-        <span class="text-sm">Habilitar Pregúntale a la IA</span>
-      </label>
-    </div>
-    <p class="mt-4 text-xs leading-5 text-stone-500">La consulta se procesa por Internet. BITACORA envía resúmenes operativos, incluyendo nombres de choferes y placas cuando son necesarios para responder, pero excluye datos personales y documentos de viaje.</p>
-    <div class="mt-5 flex flex-wrap gap-2">
-      <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar Gemini</button>
-      {% if ia_cfg.api_key and ia_cfg.enabled %}
-      <button form="probar-gemini" type="submit" class="rounded-full border border-green-300 bg-green-50 px-5 py-2.5 text-sm font-medium text-green-800">Probar conexión</button>
-      {% endif %}
-      {% if ia_cfg.api_key %}
-      <button type="submit" name="eliminar_clave" value="1" onclick="return confirm('¿Desea eliminar la API key guardada y deshabilitar Gemini?')" class="rounded-full border border-red-200 px-5 py-2.5 text-sm text-red-700">Eliminar clave</button>
-      {% endif %}
-    </div>
-  </form>
-  <form id="probar-gemini" method="post" action="/configuracion/ia/probar" hx-boost="false" class="hidden"></form>
-</section>
+</form>
+<form id="probar-gemini" method="post" action="/configuracion/ia/probar" hx-boost="false" class="hidden"></form>
+{% endcall %}
 
-<section class="mt-6 max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6 shadow-sm">
-  <h3 class="font-display text-2xl text-amber-900">Importar respaldo</h3>
-  <p class="mt-2 text-sm text-amber-900"><strong>Advertencia:</strong> al importar un respaldo, los datos actuales serán reemplazados por la información contenida en ese archivo. Cualquier registro posterior al respaldo dejará de aparecer.</p>
-  <p class="mt-2 text-sm text-amber-800">Antes del reemplazo, BITACORA guardará automáticamente una copia completa del libro actual en la carpeta de respaldos.</p>
+<div class="mt-6"></div>
+<section class="max-w-3xl rounded-2xl border border-amber-300 bg-amber-50 p-6 card-shadow dark:border-amber-900/40 dark:bg-surface2">
+  <h3 class="font-display text-lg font-semibold text-amber-900 dark:text-amber-300">Importar respaldo</h3>
+  <p class="mt-2 text-sm text-amber-900 dark:text-amber-200"><strong>Advertencia:</strong> al importar un respaldo, los datos actuales serán reemplazados por la información contenida en ese archivo. Cualquier registro posterior al respaldo dejará de aparecer.</p>
+  <p class="mt-2 text-sm text-amber-800 dark:text-amber-300/80">Antes del reemplazo, BITACORA guardará automáticamente una copia completa del libro actual en la carpeta de respaldos.</p>
   <form method="post" action="/configuracion/importar-respaldo" enctype="multipart/form-data" hx-boost="false" class="mt-4 flex flex-wrap items-end gap-3">
     <label class="block flex-1">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-amber-900">Archivo .xlsx</span>
-      <input type="file" name="respaldo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="w-full rounded-xl border border-amber-300 bg-white px-3 py-2 text-sm">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-amber-900 dark:text-amber-300">Archivo .xlsx</span>
+      <input type="file" name="respaldo" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required class="w-full rounded-xl border border-amber-300 bg-surface px-3 py-2 text-sm text-ink dark:border-amber-900/50">
     </label>
-    <button type="submit" onclick="return confirm('ADVERTENCIA: esta acción reemplazará todos los datos actuales por los del respaldo seleccionado. ¿Desea continuar?')" class="rounded-full bg-amber-800 px-5 py-2.5 text-sm font-medium text-white">Importar y reemplazar datos</button>
+    <button type="submit" onclick="return confirm('ADVERTENCIA: esta acción reemplazará todos los datos actuales por los del respaldo seleccionado. ¿Desea continuar?')" class="inline-flex items-center gap-2 rounded-xl bg-amber-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5">{{ icon("upload", "w-4 h-4") }} Importar y reemplazar datos</button>
   </form>
 </section>
 {% endblock %}

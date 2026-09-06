@@ -1,49 +1,89 @@
 :root {
-  --paper: #f4efe6;
-  --ink: #1c1917;
-  --forest: #1a2f28;
-  --gold: #c4a35a;
+  --c-bg: 245 246 251;
+  --c-surface: 255 255 255;
+  --c-surface-2: 240 241 249;
+  --c-line: 227 229 242;
+  --c-ink: 20 21 43;
+  --c-soft: 91 94 130;
+  --c-primary: 79 70 229;
+  --c-primary-ink: 255 255 255;
+  --c-accent: 217 119 6;
+  --c-accent-ink: 255 255 255;
+
+  --shadow-color: 30 27 75;
 }
 
-html, body {
-  background: var(--paper);
-  color: var(--ink);
+html.dark {
+  --c-bg: 12 13 28;
+  --c-surface: 21 23 42;
+  --c-surface-2: 27 29 53;
+  --c-line: 40 43 74;
+  --c-ink: 236 237 250;
+  --c-soft: 158 161 197;
+  --c-primary: 129 140 248;
+  --c-primary-ink: 14 15 34;
+  --c-accent: 251 191 36;
+  --c-accent-ink: 33 22 0;
+
+  --shadow-color: 0 0 0;
 }
+
+html, body { background: rgb(var(--c-bg)); color: rgb(var(--c-ink)); }
 
 body {
   background-image:
-    radial-gradient(ellipse at 0% 0%, rgba(196, 163, 90, 0.08), transparent 42%),
-    radial-gradient(ellipse at 100% 100%, rgba(26, 47, 40, 0.06), transparent 40%);
+    radial-gradient(ellipse 900px 500px at 8% -10%, rgb(var(--c-primary) / 0.10), transparent 55%),
+    radial-gradient(ellipse 900px 500px at 100% 0%, rgb(var(--c-accent) / 0.08), transparent 55%);
+  background-attachment: fixed;
+  transition: background-color .2s ease, color .2s ease;
 }
 
+* { scrollbar-color: rgb(var(--c-line)) transparent; }
 .sidebar-scroll::-webkit-scrollbar { width: 6px; }
-.sidebar-scroll::-webkit-scrollbar-thumb { background: #2f4a40; border-radius: 99px; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 99px; }
+
+.card-shadow { box-shadow: 0 1px 2px rgb(var(--shadow-color) / 0.04), 0 8px 24px -12px rgb(var(--shadow-color) / 0.12); }
+.card-shadow-lg { box-shadow: 0 2px 4px rgb(var(--shadow-color) / 0.06), 0 16px 40px -12px rgb(var(--shadow-color) / 0.20); }
 
 .table-wrap { overflow-x: auto; }
 .viajes-table [data-column].is-hidden { display: none; }
 table.data th {
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #78716c;
+  color: rgb(var(--c-soft));
   font-weight: 600;
 }
+table.data tbody tr { transition: background-color .12s ease; }
 
 .dot {
-  width: 0.65rem;
-  height: 0.65rem;
+  width: 0.6rem;
+  height: 0.6rem;
   border-radius: 999px;
   display: inline-block;
-  box-shadow: 0 0 0 3px rgba(255,255,255,0.5);
+  box-shadow: 0 0 0 3px rgb(var(--c-surface) / 0.9);
 }
-.dot-rojo { background: #b42318; }
-.dot-amarillo { background: #d97706; }
-.dot-verde { background: #1b7a4e; }
-.dot-gris { background: #a8a29e; }
+.dot-rojo { background: #ef4444; }
+.dot-amarillo { background: #f59e0b; }
+.dot-verde { background: #10b981; }
+.dot-gris { background: #9ca3af; }
 
-.badge-rojo { background: #fef3f2; color: #b42318; border: 1px solid #fecdca; }
+.badge-rojo { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
 .badge-amarillo { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
-.badge-verde { background: #ecfdf3; color: #166534; border: 1px solid #bbf7d0; }
-.badge-gris { background: #f5f5f4; color: #57534e; border: 1px solid #e7e5e4; }
+.badge-verde { background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; }
+.badge-gris { background: #f3f4f6; color: #4b5563; border: 1px solid #e5e7eb; }
+html.dark .badge-rojo { background: rgb(127 29 29 / 0.35); color: #fca5a5; border-color: rgb(153 27 27 / 0.6); }
+html.dark .badge-amarillo { background: rgb(120 53 15 / 0.35); color: #fcd34d; border-color: rgb(146 64 14 / 0.6); }
+html.dark .badge-verde { background: rgb(6 78 59 / 0.35); color: #6ee7b7; border-color: rgb(4 120 87 / 0.6); }
+html.dark .badge-gris { background: rgb(55 58 92 / 0.5); color: #c7c9e6; border-color: rgb(75 78 120 / 0.6); }
 
-input[type="date"]::-webkit-calendar-picker-indicator { opacity: 0.55; }
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="file"]::file-selector-button { opacity: 0.7; cursor: pointer; }
+html.dark input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+::selection { background: rgb(var(--c-primary) / 0.25); }
+
+.theme-icon-sun { display: inline-flex; }
+.theme-icon-moon { display: none; }
+html.dark .theme-icon-sun { display: none; }
+html.dark .theme-icon-moon { display: inline-flex; }

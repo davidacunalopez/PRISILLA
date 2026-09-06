@@ -1,45 +1,31 @@
 {% extends "base.html" %}
+{% from "_macros.html" import stat, card, vacio %}
+{% from "_icons.html" import icon %}
 {% block heading %}Buen día{% endblock %}
 {% block subhead %}
-<p class="mt-1 max-w-xl text-sm text-stone-500">Semáforo de pólizas en vivo. Los días restantes no se guardan en Excel: se calculan al abrir.</p>
+<p class="mt-1 max-w-xl text-sm text-soft">Semáforo de pólizas en vivo. Los días restantes no se guardan en Excel: se calculan al abrir.</p>
 {% endblock %}
 {% block actions %}
-<a href="/seguros/nuevo" class="inline-flex items-center rounded-full bg-forest px-4 py-2 text-sm font-medium text-paper">Registrar póliza</a>
-<a href="/viajes/nuevo" class="inline-flex items-center rounded-full border border-stone-300 bg-white/70 px-4 py-2 text-sm text-forest">Nuevo viaje</a>
+<a href="/seguros/nuevo" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5 hover:shadow-md">{{ icon("shield", "w-4 h-4") }} Registrar póliza</a>
+<a href="/viajes/nuevo" class="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-surface2 hover:-translate-y-0.5">{{ icon("route", "w-4 h-4") }} Nuevo viaje</a>
 {% endblock %}
 {% block content %}
 <section class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-  <article class="rounded-2xl border border-red-100 bg-white p-5 shadow-sm">
-    <p class="text-xs uppercase tracking-wider text-stone-500">Vencidos o críticos</p>
-    <p class="mt-2 font-display text-4xl text-red-700">{{ alertas.rojos|length }}</p>
-    <p class="mt-1 text-sm text-stone-500">Umbral rojo (≤ {{ general.umbral_rojo_dias }} días o vencido)</p>
-  </article>
-  <article class="rounded-2xl border border-amber-100 bg-white p-5 shadow-sm">
-    <p class="text-xs uppercase tracking-wider text-stone-500">Por vencer</p>
-    <p class="mt-2 font-display text-4xl text-amber-700">{{ alertas.amarillos|length }}</p>
-    <p class="mt-1 text-sm text-stone-500">Umbral amarillo ({{ general.umbral_rojo_dias + 1 }}–{{ general.umbral_amarillo_dias }} días)</p>
-  </article>
-  <article class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-    <p class="text-xs uppercase tracking-wider text-stone-500">Camiones activos</p>
-    <p class="mt-2 font-display text-4xl text-forest">{{ n_camiones }}</p>
-    <p class="mt-1 text-sm text-stone-500">{{ n_viajes }} viajes · {{ n_pendientes }} pendientes</p>
-  </article>
-  <article class="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
-    <p class="text-xs uppercase tracking-wider text-stone-500">Gasolina acumulada</p>
-    <p class="mt-2 font-display text-3xl text-forest">{{ total_gas }}</p>
-    <p class="mt-1 text-sm text-stone-500">Suma de compras registradas</p>
-  </article>
+  {{ stat("Vencidos o críticos", alertas.rojos|length, "Umbral rojo (≤ " ~ general.umbral_rojo_dias ~ " días o vencido)", tone="danger") }}
+  {{ stat("Por vencer", alertas.amarillos|length, "Umbral amarillo (" ~ (general.umbral_rojo_dias + 1) ~ "–" ~ general.umbral_amarillo_dias ~ " días)", tone="warning") }}
+  {{ stat("Camiones activos", n_camiones, n_viajes ~ " viajes · " ~ n_pendientes ~ " pendientes", tone="primary") }}
+  {{ stat("Gasolina acumulada", total_gas, "Suma de compras registradas", tone="success") }}
 </section>
 
 <section class="mb-8">
   <div class="mb-3 flex items-end justify-between">
-    <h3 class="font-display text-2xl text-forest">Pólizas activas</h3>
-    <a href="/seguros" class="text-sm text-forest-400 hover:underline">Ver todas</a>
+    <h3 class="font-display text-xl font-semibold text-ink">Pólizas activas</h3>
+    <a href="/seguros" class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline">Ver todas {{ icon("arrow-right", "w-3.5 h-3.5") }}</a>
   </div>
   {% if alertas.todos %}
-  <div class="table-wrap overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+  <div class="table-wrap overflow-hidden rounded-2xl border border-line bg-surface card-shadow">
     <table class="data w-full text-left text-sm">
-      <thead class="bg-paper/80">
+      <thead class="bg-surface2">
         <tr>
           <th class="px-4 py-3">Urgencia</th>
           <th class="px-4 py-3">Camión</th>
@@ -51,11 +37,11 @@
       </thead>
       <tbody>
         {% for s in alertas.todos %}
-        <tr class="border-t border-stone-100 hover:bg-paper/60">
+        <tr class="border-t border-line hover:bg-surface2/70">
           <td class="px-4 py-3">
             <span class="inline-flex items-center gap-2">
               <span class="dot dot-{{ s.semaforo }}"></span>
-              <span class="text-sm {% if s.semaforo == 'rojo' %}text-red-700 font-medium{% elif s.semaforo == 'amarillo' %}text-amber-700{% else %}text-stone-600{% endif %}">{{ s.urgencia }}</span>
+              <span class="text-sm {% if s.semaforo == 'rojo' %}font-medium text-red-600{% elif s.semaforo == 'amarillo' %}text-amber-600{% else %}text-soft{% endif %}">{{ s.urgencia }}</span>
             </span>
           </td>
           <td class="px-4 py-3 font-medium">{{ s.placa }}</td>
@@ -65,7 +51,7 @@
           <td class="px-4 py-3 text-right">
             {% if s.semaforo != 'verde' %}
             <form method="post" action="/seguros/{{ s.ID_Seguro }}/renovar" class="inline" hx-boost="false">
-              <button class="text-sm text-forest-400 hover:underline" type="submit">Renovar</button>
+              <button class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline" type="submit">{{ icon("refresh", "w-3.5 h-3.5") }} Renovar</button>
             </form>
             {% endif %}
           </td>
@@ -75,18 +61,16 @@
     </table>
   </div>
   {% else %}
-  <div class="rounded-2xl border border-dashed border-stone-300 bg-white/50 px-6 py-14 text-center text-stone-500">
-    Todavía no hay pólizas. Empiece por cargar los camiones y sus seguros.
-  </div>
+  {{ vacio("Todavía no hay pólizas. Empiece por cargar los camiones y sus seguros.", "/seguros/nuevo", "Registrar póliza", "shield") }}
   {% endif %}
 </section>
 
 {% if recientes %}
 <section>
-  <h3 class="mb-3 font-display text-2xl text-forest">Últimos viajes</h3>
-  <div class="table-wrap overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+  <h3 class="mb-3 font-display text-xl font-semibold text-ink">Últimos viajes</h3>
+  <div class="table-wrap overflow-hidden rounded-2xl border border-line bg-surface card-shadow">
     <table class="data w-full text-left text-sm">
-      <thead class="bg-paper/80">
+      <thead class="bg-surface2">
         <tr>
           <th class="px-4 py-3">Fecha</th>
           <th class="px-4 py-3">Ruta</th>
@@ -96,7 +80,7 @@
       </thead>
       <tbody>
         {% for v in recientes %}
-        <tr class="border-t border-stone-100">
+        <tr class="border-t border-line">
           <td class="px-4 py-3 whitespace-nowrap">{{ v.fecha_txt }} · Semana {{ v.Semana }}</td>
           <td class="px-4 py-3">{{ v.salida }} → {{ v.llegada }}</td>
           <td class="px-4 py-3">{{ v.Contenedor or "—" }}</td>

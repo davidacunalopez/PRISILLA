@@ -1,53 +1,87 @@
-{% macro btn_primary(href, label) -%}
-<a href="{{ href }}" class="inline-flex items-center rounded-full bg-forest px-4 py-2 text-sm font-medium text-paper shadow-sm hover:bg-forest-600">{{ label }}</a>
+{% import "_icons.html" as icons %}
+
+{% macro btn_primary(href, label, icon="") -%}
+<a href="{{ href }}" class="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5 hover:shadow-md hover:shadow-primary/40">
+  {%- if icon %}{{ icons.icon(icon, "w-4 h-4") }}{% endif %} {{ label }}
+</a>
 {%- endmacro %}
 
-{% macro btn_ghost(href, label) -%}
-<a href="{{ href }}" class="inline-flex items-center rounded-full border border-stone-300 bg-white/70 px-4 py-2 text-sm text-forest hover:bg-white">{{ label }}</a>
+{% macro btn_ghost(href, label, icon="") -%}
+<a href="{{ href }}" class="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-surface2 hover:-translate-y-0.5">
+  {%- if icon %}{{ icons.icon(icon, "w-4 h-4") }}{% endif %} {{ label }}
+</a>
 {%- endmacro %}
 
 {% macro field(name, label, value, type="text", required=false, step=none, min=none, placeholder="") -%}
 <label class="block">
-  <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">{{ label }}{% if required %} *{% endif %}</span>
+  <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">{{ label }}{% if required %} <span class="text-accent">*</span>{% endif %}</span>
   <input name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if step %}step="{{ step }}"{% endif %} {% if min is not none %}min="{{ min }}"{% endif %} placeholder="{{ placeholder }}"
-         class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+         class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none transition placeholder:text-soft/60 focus:border-primary focus:ring-4 focus:ring-primary/15">
 </label>
 {%- endmacro %}
 
 {% macro select(name, label, value, options, required=false, blank="") -%}
 <label class="block">
-  <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">{{ label }}{% if required %} *{% endif %}</span>
-  <select name="{{ name }}" {% if required %}required{% endif %}
-          class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-    {% if blank %}<option value="">{{ blank }}</option>{% endif %}
-    {% for opt in options %}
-      {% if opt is mapping %}
-        <option value="{{ opt.value }}" {% if value == opt.value %}selected{% endif %}>{{ opt.label }}</option>
-      {% else %}
-        <option value="{{ opt }}" {% if value == opt %}selected{% endif %}>{{ opt }}</option>
-      {% endif %}
-    {% endfor %}
-  </select>
+  <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">{{ label }}{% if required %} <span class="text-accent">*</span>{% endif %}</span>
+  <div class="relative">
+    <select name="{{ name }}" {% if required %}required{% endif %}
+            class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+      {% if blank %}<option value="">{{ blank }}</option>{% endif %}
+      {% for opt in options %}
+        {% if opt is mapping %}
+          <option value="{{ opt.value }}" {% if value == opt.value %}selected{% endif %}>{{ opt.label }}</option>
+        {% else %}
+          <option value="{{ opt }}" {% if value == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endif %}
+      {% endfor %}
+    </select>
+    <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icons.icon("chevron-down", "w-4 h-4") }}</span>
+  </div>
 </label>
 {%- endmacro %}
 
 {% macro textarea(name, label, value, rows=3) -%}
 <label class="block sm:col-span-2">
-  <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">{{ label }}</span>
-  <textarea name="{{ name }}" rows="{{ rows }}" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">{{ value or '' }}</textarea>
+  <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">{{ label }}</span>
+  <textarea name="{{ name }}" rows="{{ rows }}" class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none transition placeholder:text-soft/60 focus:border-primary focus:ring-4 focus:ring-primary/15">{{ value or '' }}</textarea>
 </label>
 {%- endmacro %}
 
-{% macro mostrar_errores(lista) -%}
-{% if lista %}
-  <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-    <ul class="list-disc pl-4">{% for e in lista %}<li>{{ e }}</li>{% endfor %}</ul>
+{% macro alert(variant, message="", title="", items=none, action_href="", action_label="") -%}
+{% set styles = {
+  "success": ("check-circle", "border-emerald-500", "bg-emerald-50 text-emerald-900", "text-emerald-600"),
+  "warning": ("alert-triangle", "border-amber-500", "bg-amber-50 text-amber-900", "text-amber-600"),
+  "danger":  ("x-circle", "border-red-500", "bg-red-50 text-red-900", "text-red-600"),
+  "info":    ("info", "border-primary", "bg-primary/5 text-ink", "text-primary"),
+} %}
+{% set icon_name, border_cls, bg_cls, icon_cls = styles.get(variant, styles["info"]) %}
+<div class="mb-5 flex gap-3 rounded-2xl border-l-4 {{ border_cls }} {{ bg_cls }} px-4 py-3.5 text-sm shadow-sm dark:bg-surface2 dark:text-ink">
+  <span class="mt-0.5 shrink-0 {{ icon_cls }}">{{ icons.icon(icon_name, "w-5 h-5") }}</span>
+  <div class="min-w-0 flex-1">
+    {% if title %}<p class="font-semibold">{{ title }}</p>{% endif %}
+    {% if message %}<p class="{% if title %}mt-0.5{% endif %}">{{ message }}</p>{% endif %}
+    {% if items %}
+    <ul class="{% if title or message %}mt-1{% endif %} list-disc space-y-0.5 pl-4">
+      {% for item in items %}<li>{{ item }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    {% if action_href %}
+    <a href="{{ action_href }}" class="mt-2 inline-flex items-center gap-1 text-sm font-semibold underline underline-offset-2">{{ action_label or "Ir ahora" }} {{ icons.icon("arrow-right", "w-3.5 h-3.5") }}</a>
+    {% endif %}
   </div>
-{% endif %}
+</div>
 {%- endmacro %}
 
-{% macro vacio(texto) -%}
-<div class="rounded-2xl border border-dashed border-stone-300 bg-white/50 px-6 py-16 text-center text-stone-500">{{ texto }}</div>
+{% macro mostrar_errores(lista) -%}
+{% if lista %}{{ alert("danger", title="Revise lo siguiente antes de continuar", items=lista) }}{% endif %}
+{%- endmacro %}
+
+{% macro vacio(texto, cta_href="", cta_label="", icon_name="box") -%}
+<div class="flex flex-col items-center gap-4 rounded-2xl border border-dashed border-line bg-surface/60 px-6 py-16 text-center">
+  <span class="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">{{ icons.icon(icon_name, "w-7 h-7") }}</span>
+  <p class="max-w-sm text-sm text-soft">{{ texto }}</p>
+  {% if cta_href %}{{ btn_primary(cta_href, cta_label, "plus") }}{% endif %}
+</div>
 {%- endmacro %}
 
 {% macro badge_estado(estado) -%}
@@ -57,4 +91,31 @@
   {% elif estado == 'Inactivo' or estado == 'Cancelado' %}badge-gris
   {% elif estado == 'Renovado' %}badge-gris
   {% else %}badge-gris{% endif %}">{{ estado }}</span>
+{%- endmacro %}
+
+{% macro card(title="", subtitle="", cls="") -%}
+<section class="rounded-2xl border border-line bg-surface p-6 card-shadow {{ cls }}">
+  {% if title %}
+  <div class="mb-4">
+    <h3 class="font-display text-xl font-semibold text-ink">{{ title }}</h3>
+    {% if subtitle %}<p class="mt-1 text-sm text-soft">{{ subtitle }}</p>{% endif %}
+  </div>
+  {% endif %}
+  {{ caller() }}
+</section>
+{%- endmacro %}
+
+{% macro stat(label, value, hint="", tone="neutral") -%}
+{% set tones = {
+  "neutral": "text-ink",
+  "danger": "text-red-600",
+  "warning": "text-amber-600",
+  "success": "text-emerald-600",
+  "primary": "text-primary",
+} %}
+<article class="min-w-0 rounded-2xl border border-line bg-surface p-5 card-shadow">
+  <p class="truncate text-xs font-semibold uppercase tracking-wider text-soft">{{ label }}</p>
+  <p class="mt-2 break-words font-display text-2xl font-bold leading-tight {{ tones.get(tone, 'text-ink') }} sm:text-3xl">{{ value }}</p>
+  {% if hint %}<p class="mt-1 text-sm text-soft">{{ hint }}</p>{% endif %}
+</article>
 {%- endmacro %}

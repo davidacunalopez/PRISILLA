@@ -1,88 +1,108 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost, card %}
+{% from "_icons.html" import icon %}
 {% block heading %}{% if fila.ID_Viaje %}Editar viaje{% else %}Registrar viaje{% endif %}{% endblock %}
 {% block actions %}{{ btn_ghost("/viajes", "Volver") }}{% endblock %}
 {% block content %}
-<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-5xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+{% call card(cls="max-w-5xl") %}
+<form method="post" action="{{ accion }}" hx-boost="false">
   {{ mostrar_errores(errores) }}
   <div class="grid gap-4 sm:grid-cols-2">
     {{ field("Fecha", "Fecha", fila.Fecha, type="date", required=true) }}
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Semanas</span>
-      <input id="SemanaVisible" type="text" value="{% if fila.Semana %}Semana {{ fila.Semana }}{% endif %}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-600">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Semanas</span>
+      <input id="SemanaVisible" type="text" value="{% if fila.Semana %}Semana {{ fila.Semana }}{% endif %}" readonly class="w-full cursor-not-allowed rounded-xl border border-line bg-surface2 px-3.5 py-2.5 text-sm text-soft">
       <input id="Semana" type="hidden" name="Semana" value="{{ fila.Semana or '' }}">
-      <span class="mt-1 block text-xs text-stone-400">Se calcula automáticamente desde la fecha.</span>
+      <span class="mt-1 block text-xs text-soft">Se calcula automáticamente desde la fecha.</span>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Salida *</span>
-      <select id="ID_Salida" name="ID_Salida" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for e in empresas %}
-        <option value="{{ e.ID_Empresa }}" {% if fila.ID_Salida == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}{% if e.Estado == "Inactivo" %} (archivada){% endif %}</option>
-        {% endfor %}
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Salida <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select id="ID_Salida" name="ID_Salida" required class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for e in empresas %}
+          <option value="{{ e.ID_Empresa }}" {% if fila.ID_Salida == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}{% if e.Estado == "Inactivo" %} (archivada){% endif %}</option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Llegada *</span>
-      <select id="ID_Llegada" name="ID_Llegada" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for e in empresas %}
-        <option value="{{ e.ID_Empresa }}" {% if fila.ID_Llegada == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}{% if e.Estado == "Inactivo" %} (archivada){% endif %}</option>
-        {% endfor %}
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Llegada <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select id="ID_Llegada" name="ID_Llegada" required class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for e in empresas %}
+          <option value="{{ e.ID_Empresa }}" {% if fila.ID_Llegada == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}{% if e.Estado == "Inactivo" %} (archivada){% endif %}</option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
     </label>
     <label id="codigo-ruta-wrapper" class="block rounded-xl transition">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Código de ruta</span>
-      <input id="CodigoRuta" name="CodigoRuta" value="{{ fila.CodigoRuta or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-medium text-forest" placeholder="Se asigna según la ruta">
-      <span id="estado-ruta" class="mt-1 block text-xs text-stone-400">Seleccione salida y llegada.</span>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Código de ruta</span>
+      <input id="CodigoRuta" name="CodigoRuta" value="{{ fila.CodigoRuta or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-line bg-surface2 px-3.5 py-2.5 text-sm font-semibold text-ink" placeholder="Se asigna según la ruta">
+      <span id="estado-ruta" class="mt-1 block text-xs text-soft">Seleccione salida y llegada.</span>
     </label>
     <label id="categoria-wrapper" class="block rounded-xl transition">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Categoría *</span>
-      <select id="Categoria" name="Categoria" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        {% for categoria in categorias %}<option value="{{ categoria }}" {% if fila.Categoria == categoria %}selected{% endif %}>{{ categoria }}</option>{% endfor %}
-      </select>
-      <span id="estado-categoria" class="mt-1 block text-xs text-stone-400">Ruptura se reserva para rutas dentro de la misma estación.</span>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Categoría <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select id="Categoria" name="Categoria" required class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          {% for categoria in categorias %}<option value="{{ categoria }}" {% if fila.Categoria == categoria %}selected{% endif %}>{{ categoria }}</option>{% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
+      <span id="estado-categoria" class="mt-1 block text-xs text-soft">Ruptura se reserva para rutas dentro de la misma estación.</span>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Empresa para la que se trabaja *</span>
-      <select name="EmpresaTrabajo" id="EmpresaTrabajoSelect" required onchange="alternarSelectNuevo(this, 'empresa-trabajo-nueva-wrapper', 'EmpresaTrabajoNueva')" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for empresa in empresas_trabajo %}<option value="{{ empresa }}" {% if fila.EmpresaTrabajo == empresa %}selected{% endif %}>{{ empresa }}</option>{% endfor %}
-        <option value="__nueva__">+ Agregar empresa nueva…</option>
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Empresa para la que se trabaja <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select name="EmpresaTrabajo" id="EmpresaTrabajoSelect" required onchange="alternarSelectNuevo(this, 'empresa-trabajo-nueva-wrapper', 'EmpresaTrabajoNueva')" class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for empresa in empresas_trabajo %}<option value="{{ empresa }}" {% if fila.EmpresaTrabajo == empresa %}selected{% endif %}>{{ empresa }}</option>{% endfor %}
+          <option value="__nueva__">+ Agregar empresa nueva…</option>
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
       <div id="empresa-trabajo-nueva-wrapper" class="mt-2 hidden">
         <input id="EmpresaTrabajoNueva" name="EmpresaTrabajo" type="text" maxlength="100" disabled placeholder="Nombre de la empresa"
-               class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <button type="button" onclick="cancelarSelectNuevo('EmpresaTrabajoSelect','empresa-trabajo-nueva-wrapper','EmpresaTrabajoNueva')" class="mt-1 text-xs text-stone-500 hover:underline">Cancelar, elegir de la lista</button>
+               class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+        <button type="button" onclick="cancelarSelectNuevo('EmpresaTrabajoSelect','empresa-trabajo-nueva-wrapper','EmpresaTrabajoNueva')" class="mt-1 text-xs text-soft hover:underline">Cancelar, elegir de la lista</button>
       </div>
     </label>
     <label id="precio-ruta-wrapper" class="block rounded-xl transition">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Precio vigente de la ruta</span>
-      <input id="Precio" name="Precio" value="{{ fila.Precio or '' }}" type="number" readonly required step="0.01" min="0.01" class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm font-medium text-forest" placeholder="Se asigna según la ruta">
-      <span id="estado-precio" class="mt-1 block text-xs text-stone-400">Se completa con la tarifa configurada para la ruta.</span>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Precio vigente de la ruta</span>
+      <input id="Precio" name="Precio" value="{{ fila.Precio or '' }}" type="number" readonly required step="0.01" min="0.01" class="w-full cursor-not-allowed rounded-xl border border-line bg-surface2 px-3.5 py-2.5 text-sm font-semibold text-ink" placeholder="Se asigna según la ruta">
+      <span id="estado-precio" class="mt-1 block text-xs text-soft">Se completa con la tarifa configurada para la ruta.</span>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Moneda</span>
-      <input id="MonedaVisible" value="{{ fila.Moneda or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-600" placeholder="Automática">
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Moneda</span>
+      <input id="MonedaVisible" value="{{ fila.Moneda or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-line bg-surface2 px-3.5 py-2.5 text-sm text-soft" placeholder="Automática">
       <input id="Moneda" type="hidden" name="Moneda" value="{{ fila.Moneda or 'CRC' }}">
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Camión *</span>
-      <select id="ID_Camion" name="ID_Camion" required onchange="document.getElementById('ID_Chofer').value=this.options[this.selectedIndex].dataset.chofer||''" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for c in camiones %}
-        <option value="{{ c.ID_Camion }}" data-chofer="{{ c.ID_ChoferDisponible or '' }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
-        {% endfor %}
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Camión <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select id="ID_Camion" name="ID_Camion" required onchange="document.getElementById('ID_Chofer').value=this.options[this.selectedIndex].dataset.chofer||''" class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for c in camiones %}
+          <option value="{{ c.ID_Camion }}" data-chofer="{{ c.ID_ChoferDisponible or '' }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
     </label>
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Chofer *</span>
-      <select id="ID_Chofer" name="ID_Chofer" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for c in choferes %}
-        <option value="{{ c.ID_Chofer }}" {% if fila.ID_Chofer == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
-        {% endfor %}
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Chofer <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select id="ID_Chofer" name="ID_Chofer" required class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for c in choferes %}
+          <option value="{{ c.ID_Chofer }}" {% if fila.ID_Chofer == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
     </label>
     {{ field("Contenedor", "Contenedor", fila.Contenedor) }}
     {{ field("Chasis", "Chasis", fila.Chasis) }}
@@ -90,14 +110,15 @@
     <input type="hidden" name="Estado" value="{{ fila.Estado or 'Pendiente' }}">
     <input type="hidden" name="FechaRegistro" value="{{ fila.FechaRegistro or '' }}">
   </div>
-  <div class="mt-6 flex items-center justify-between">
-    <button type="submit" class="rounded-full bg-forest px-7 py-3 text-sm font-semibold text-paper shadow-sm">Guardar viaje</button>
+  <div class="mt-6 flex items-center justify-between border-t border-line pt-5">
+    <button type="submit" class="rounded-xl bg-primary px-7 py-3 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar viaje</button>
     {% if fila.ID_Viaje %}
-    <button form="borrar" type="submit" class="text-sm text-red-700 hover:underline"
-            onclick="return confirm('¿Eliminar este viaje?')">Eliminar</button>
+    <button form="borrar" type="submit" class="inline-flex items-center gap-1.5 text-sm text-red-600 hover:underline"
+            onclick="return confirm('¿Eliminar este viaje?')">{{ icon("trash", "w-3.5 h-3.5") }} Eliminar</button>
     {% endif %}
   </div>
 </form>
+{% endcall %}
 <script>
   const mapaRutas = {{ mapa_rutas|tojson }};
   const rutaInicial = {{ ((fila.ID_Salida or '') ~ '|' ~ (fila.ID_Llegada or ''))|tojson }};
@@ -144,12 +165,12 @@
     }
     if (rutaInterna) {
       categoria.value = 'Ruptura';
-      wrapperCategoria.className = 'block rounded-xl border border-violet-200 bg-violet-50 p-3 transition';
-      wrapperCodigo.className = 'block rounded-xl border border-violet-200 bg-violet-50 p-3 transition';
-      wrapperPrecio.className = 'block rounded-xl border border-violet-200 bg-violet-50 p-3 transition';
+      wrapperCategoria.className = 'block rounded-xl border border-violet-300 bg-violet-50 p-3 transition dark:border-violet-500/30 dark:bg-violet-500/10';
+      wrapperCodigo.className = 'block rounded-xl border border-violet-300 bg-violet-50 p-3 transition dark:border-violet-500/30 dark:bg-violet-500/10';
+      wrapperPrecio.className = 'block rounded-xl border border-violet-300 bg-violet-50 p-3 transition dark:border-violet-500/30 dark:bg-violet-500/10';
       categoria.classList.add('border-violet-300', 'bg-violet-50', 'font-semibold', 'text-violet-900');
       campo.classList.add('border-violet-300', 'bg-violet-50', 'text-violet-900');
-      estadoCategoria.className = 'mt-1 block text-xs font-medium text-violet-800';
+      estadoCategoria.className = 'mt-1 block text-xs font-medium text-violet-700 dark:text-violet-300';
       estadoCategoria.textContent = 'Ruptura asignada automáticamente: salida y llegada corresponden a la misma estación.';
     } else {
       if (categoria.value === 'Ruptura') categoria.value = 'Viaje completo';
@@ -158,31 +179,31 @@
       wrapperPrecio.className = 'block rounded-xl transition';
       categoria.classList.remove('border-violet-300', 'bg-violet-50', 'font-semibold', 'text-violet-900');
       campo.classList.remove('border-violet-300', 'bg-violet-50', 'text-violet-900');
-      estadoCategoria.className = 'mt-1 block text-xs text-stone-400';
+      estadoCategoria.className = 'mt-1 block text-xs text-soft';
       estadoCategoria.textContent = 'Ruptura se reserva para rutas dentro de la misma estación.';
     }
     if (!salida || !llegada) {
-      estado.className = 'mt-1 block text-xs text-stone-400';
+      estado.className = 'mt-1 block text-xs text-soft';
       estado.textContent = 'Seleccione salida y llegada.';
     } else if (codigo) {
-      estado.className = 'mt-1 block text-xs text-green-700';
+      estado.className = 'mt-1 block text-xs text-emerald-600 dark:text-emerald-400';
       estado.textContent = 'Ruta configurada correctamente.';
     } else {
-      estado.className = 'mt-1 block text-xs font-medium text-amber-700';
+      estado.className = 'mt-1 block text-xs font-medium text-amber-600 dark:text-amber-400';
       estado.innerHTML = 'Esta ruta no tiene código. <a class="underline" href="/configuracion#rutas">Configúrelo antes de guardar.</a>';
     }
     if (!salida || !llegada) {
-      estadoPrecio.className = 'mt-1 block text-xs text-stone-400';
+      estadoPrecio.className = 'mt-1 block text-xs text-soft';
       estadoPrecio.textContent = 'Se completa con la tarifa configurada para la ruta.';
     } else if (precioAplicado !== '') {
       const simbolo = monedaAplicada === 'USD' ? '$' : '₡';
-      estadoPrecio.className = 'mt-1 block text-xs text-green-700';
+      estadoPrecio.className = 'mt-1 block text-xs text-emerald-600 dark:text-emerald-400';
       estadoPrecio.textContent = `${usaHistorico ? 'Tarifa histórica del viaje' : 'Tarifa vigente'}: ${simbolo}${Number(precioAplicado).toLocaleString('es-CR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
     } else if (codigo) {
-      estadoPrecio.className = 'mt-1 block text-xs font-medium text-amber-700';
+      estadoPrecio.className = 'mt-1 block text-xs font-medium text-amber-600 dark:text-amber-400';
       estadoPrecio.innerHTML = 'Esta ruta no tiene precio vigente. <a class="underline" href="/configuracion#rutas">Configúrelo antes de guardar.</a>';
     } else {
-      estadoPrecio.className = 'mt-1 block text-xs text-stone-400';
+      estadoPrecio.className = 'mt-1 block text-xs text-soft';
       estadoPrecio.textContent = 'Configure primero el código y precio de la ruta.';
     }
   }

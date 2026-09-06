@@ -1,23 +1,27 @@
 {% extends "base.html" %}
 {% from "_macros.html" import btn_primary, vacio, badge_estado %}
+{% from "_icons.html" import icon %}
 {% block heading %}Pólizas{% endblock %}
-{% block subhead %}<p class="mt-1 text-sm text-stone-500">Semáforo calculado al vuelo. Renovar cierra el período actual y abre el siguiente.</p>{% endblock %}
-{% block actions %}{{ btn_primary("/seguros/nuevo", "Nueva póliza") }}{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-soft">Semáforo calculado al vuelo. Renovar cierra el período actual y abre el siguiente.</p>{% endblock %}
+{% block actions %}{{ btn_primary("/seguros/nuevo", "Nueva póliza", "plus") }}{% endblock %}
 {% block content %}
 <form method="get" class="mb-5 flex flex-wrap items-end gap-3">
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Estado</span>
-    <select name="estado" onchange="this.form.submit()" class="rounded-xl border border-stone-300 bg-white px-3 py-2 text-sm">
-      {% for opt in ["Activo", "Renovado", "Cancelado", "Todos"] %}
-      <option value="{{ opt }}" {% if filtro_estado == opt %}selected{% endif %}>{{ opt }}</option>
-      {% endfor %}
-    </select>
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Estado</span>
+    <div class="relative">
+      <select name="estado" onchange="this.form.submit()" class="appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+        {% for opt in ["Activo", "Renovado", "Cancelado", "Todos"] %}
+        <option value="{{ opt }}" {% if filtro_estado == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+      <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+    </div>
   </label>
 </form>
 {% if filas %}
-<div class="table-wrap overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
+<div class="table-wrap overflow-x-auto rounded-2xl border border-line bg-surface card-shadow">
   <table class="data min-w-[1100px] w-full text-left text-sm">
-    <thead class="bg-paper/80">
+    <thead class="bg-surface2">
       <tr>
         <th class="px-4 py-3">Urgencia</th>
         <th class="px-4 py-3">Camión</th>
@@ -33,15 +37,15 @@
     </thead>
     <tbody>
       {% for s in filas %}
-      <tr class="border-t border-stone-100 hover:bg-paper/60">
+      <tr class="border-t border-line hover:bg-surface2/70">
         <td class="px-4 py-3">
           {% if s.Estado == "Activo" %}
           <span class="inline-flex items-center gap-2">
             <span class="dot dot-{{ s.semaforo }}"></span>
-            <span class="text-xs {% if s.semaforo == 'rojo' %}text-red-700{% elif s.semaforo == 'amarillo' %}text-amber-700{% else %}text-stone-500{% endif %}">{{ s.urgencia }}</span>
+            <span class="text-xs {% if s.semaforo == 'rojo' %}text-red-600{% elif s.semaforo == 'amarillo' %}text-amber-600{% else %}text-soft{% endif %}">{{ s.urgencia }}</span>
           </span>
           {% else %}
-          <span class="text-stone-400">—</span>
+          <span class="text-soft">—</span>
           {% endif %}
         </td>
         <td class="px-4 py-3 font-medium">{{ s.placa }}</td>
@@ -55,11 +59,11 @@
         <td class="px-4 py-3 text-right whitespace-nowrap">
           {% if s.Estado == "Activo" %}
           <form method="post" action="/seguros/{{ s.ID_Seguro }}/renovar" class="inline" hx-boost="false">
-            <button class="text-forest-400 hover:underline" type="submit">Renovar</button>
+            <button class="text-primary hover:underline" type="submit">Renovar</button>
           </form>
-          <span class="mx-1 text-stone-300">·</span>
+          <span class="mx-1.5 text-line">·</span>
           {% endif %}
-          <a class="text-forest-400 hover:underline" href="/seguros/{{ s.ID_Seguro }}/editar">Editar</a>
+          <a class="text-primary hover:underline" href="/seguros/{{ s.ID_Seguro }}/editar">Editar</a>
         </td>
       </tr>
       {% endfor %}
@@ -67,6 +71,6 @@
   </table>
 </div>
 {% else %}
-{{ vacio("No hay pólizas con ese filtro.") }}
+{{ vacio("No hay pólizas con ese filtro.", "/seguros/nuevo", "Nueva póliza", "shield") }}
 {% endif %}
 {% endblock %}

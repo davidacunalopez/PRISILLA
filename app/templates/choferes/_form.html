@@ -1,9 +1,10 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, select, mostrar_errores, btn_ghost %}
+{% from "_macros.html" import field, select, mostrar_errores, btn_ghost, card %}
 {% block heading %}{% if fila.ID_Chofer %}Editar chofer{% else %}Nuevo chofer{% endif %}{% endblock %}
 {% block actions %}{{ btn_ghost("/choferes", "Volver") }}{% endblock %}
 {% block content %}
-<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-2xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+{% call card(cls="max-w-2xl") %}
+<form method="post" action="{{ accion }}" hx-boost="false">
   {{ mostrar_errores(errores) }}
   <div class="grid gap-4 sm:grid-cols-2">
     {{ field("Nombre", "Nombre", fila.Nombre, required=true) }}
@@ -11,14 +12,15 @@
     {{ field("Licencia", "Licencia", fila.Licencia) }}
     {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
   </div>
-  <div class="mt-6 flex items-center justify-between">
-    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar</button>
+  <div class="mt-6 flex items-center justify-between border-t border-line pt-5">
+    <button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar</button>
     {% if fila.ID_Chofer %}
-    <button form="estado" type="submit" class="text-sm text-stone-600 hover:underline"
+    <button form="estado" type="submit" class="text-sm text-soft hover:underline"
             onclick="return confirm('¿{{ 'Reactivar' if fila.Estado == 'Inactivo' else 'Archivar' }} este chofer?')">{{ "Reactivar" if fila.Estado == "Inactivo" else "Archivar" }}</button>
     {% endif %}
   </div>
 </form>
+{% endcall %}
 {% if fila.ID_Chofer %}
 <form id="estado" method="post" action="/choferes/{{ fila.ID_Chofer }}/{{ 'reactivar' if fila.Estado == 'Inactivo' else 'archivar' }}" hx-boost="false" class="hidden"></form>
 {% endif %}

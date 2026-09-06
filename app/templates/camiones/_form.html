@@ -1,49 +1,58 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost, card %}
+{% from "_icons.html" import icon %}
 {% block heading %}{% if fila.ID_Camion %}Editar camión{% else %}Nuevo camión{% endif %}{% endblock %}
 {% block actions %}{{ btn_ghost("/camiones", "Volver") }}{% endblock %}
 {% block content %}
-<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-2xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+{% call card(cls="max-w-2xl") %}
+<form method="post" action="{{ accion }}" hx-boost="false">
   {{ mostrar_errores(errores) }}
   <div class="grid gap-4 sm:grid-cols-2">
     {{ field("Placa", "Placa", fila.Placa, required=true) }}
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Marca *</span>
-      <select name="Marca" id="MarcaSelect" required onchange="alternarSelectNuevo(this, 'marca-nueva-wrapper', 'MarcaNueva')" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for marca in marcas %}<option value="{{ marca }}" {% if fila.Marca == marca %}selected{% endif %}>{{ marca }}</option>{% endfor %}
-        <option value="__nueva__">+ Agregar marca nueva…</option>
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Marca <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select name="Marca" id="MarcaSelect" required onchange="alternarSelectNuevo(this, 'marca-nueva-wrapper', 'MarcaNueva')" class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for marca in marcas %}<option value="{{ marca }}" {% if fila.Marca == marca %}selected{% endif %}>{{ marca }}</option>{% endfor %}
+          <option value="__nueva__">+ Agregar marca nueva…</option>
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
       <div id="marca-nueva-wrapper" class="mt-2 hidden">
         <input id="MarcaNueva" name="Marca" type="text" maxlength="50" disabled placeholder="Nombre de la marca nueva"
-               class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <button type="button" onclick="cancelarSelectNuevo('MarcaSelect','marca-nueva-wrapper','MarcaNueva')" class="mt-1 text-xs text-stone-500 hover:underline">Cancelar, elegir de la lista</button>
+               class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+        <button type="button" onclick="cancelarSelectNuevo('MarcaSelect','marca-nueva-wrapper','MarcaNueva')" class="mt-1 text-xs text-soft hover:underline">Cancelar, elegir de la lista</button>
       </div>
-      <a href="/configuracion#marcas" class="mt-1 inline-block text-xs text-forest-400 hover:underline">Administrar marcas</a>
+      <a href="/configuracion#marcas" class="mt-1 inline-block text-xs text-primary hover:underline">Administrar marcas</a>
     </label>
     {{ field("Modelo", "Modelo", fila.Modelo) }}
     {{ field("Anio", "Año", fila.Anio, type="number") }}
     {{ field("Capacidad", "Capacidad", fila.Capacidad, placeholder="ej. 20 ton") }}
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Chofer predeterminado</span>
-      <select name="ID_ChoferPredeterminado" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Sin asignar</option>
-        {% for c in choferes %}
-        <option value="{{ c.ID_Chofer }}" {% if fila.ID_ChoferPredeterminado == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
-        {% endfor %}
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Chofer predeterminado</span>
+      <div class="relative">
+        <select name="ID_ChoferPredeterminado" class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Sin asignar</option>
+          {% for c in choferes %}
+          <option value="{{ c.ID_Chofer }}" {% if fila.ID_ChoferPredeterminado == c.ID_Chofer %}selected{% endif %}>{{ c.Nombre }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
     </label>
     {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
     {{ textarea("Notas", "Notas", fila.Notas) }}
   </div>
-  <div class="mt-6 flex items-center justify-between">
-    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar</button>
+  <div class="mt-6 flex items-center justify-between border-t border-line pt-5">
+    <button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar</button>
     {% if fila.ID_Camion %}
-    <button form="estado" type="submit" class="text-sm text-stone-600 hover:underline"
+    <button form="estado" type="submit" class="text-sm text-soft hover:underline"
             onclick="return confirm('¿{{ 'Reactivar' if fila.Estado == 'Inactivo' else 'Archivar' }} este camión?')">{{ "Reactivar" if fila.Estado == "Inactivo" else "Archivar" }}</button>
     {% endif %}
   </div>
 </form>
+{% endcall %}
 {% if fila.ID_Camion %}
 <form id="estado" method="post" action="/camiones/{{ fila.ID_Camion }}/{{ 'reactivar' if fila.Estado == 'Inactivo' else 'archivar' }}" hx-boost="false" class="hidden"></form>
 {% endif %}

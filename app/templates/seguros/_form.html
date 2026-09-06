@@ -1,19 +1,24 @@
 {% extends "base.html" %}
-{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost %}
+{% from "_macros.html" import field, select, textarea, mostrar_errores, btn_ghost, card %}
+{% from "_icons.html" import icon %}
 {% block heading %}{% if fila.ID_Seguro %}Editar póliza{% else %}Nueva póliza{% endif %}{% endblock %}
 {% block actions %}{{ btn_ghost("/seguros", "Volver") }}{% endblock %}
 {% block content %}
-<form method="post" action="{{ accion }}" hx-boost="false" class="max-w-3xl rounded-2xl border border-stone-200 bg-white p-6 shadow-sm">
+{% call card(cls="max-w-3xl") %}
+<form method="post" action="{{ accion }}" hx-boost="false">
   {{ mostrar_errores(errores) }}
   <div class="grid gap-4 sm:grid-cols-2">
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Camión *</span>
-      <select name="ID_Camion" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
-        <option value="">Seleccione…</option>
-        {% for c in camiones %}
-        <option value="{{ c.ID_Camion }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }} — {{ c.Marca }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
-        {% endfor %}
-      </select>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Camión <span class="text-accent">*</span></span>
+      <div class="relative">
+        <select name="ID_Camion" required class="w-full appearance-none rounded-xl border border-line bg-surface px-3.5 py-2.5 pr-9 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+          <option value="">Seleccione…</option>
+          {% for c in camiones %}
+          <option value="{{ c.ID_Camion }}" {% if fila.ID_Camion == c.ID_Camion %}selected{% endif %}>{{ c.Placa }} — {{ c.Marca }}{% if c.Estado == "Inactivo" %} (archivado){% endif %}</option>
+          {% endfor %}
+        </select>
+        <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
+      </div>
     </label>
     {{ select("TipoSeguro", "Tipo de seguro", fila.TipoSeguro, choices.TipoSeguro, required=true) }}
     {{ field("Aseguradora", "Aseguradora", fila.Aseguradora) }}
@@ -23,22 +28,23 @@
     {{ field("FechaFin", "Fecha fin", fila.FechaFin, type="date", required=true) }}
     {{ field("MontoPrima", "Monto prima (CRC)", fila.MontoPrima, type="number", step="0.01") }}
     <label class="block">
-      <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Fecha límite de pago</span>
-      <input id="FechaUltimoPago" type="date" name="FechaUltimoPago" value="{{ fila.FechaUltimoPago or fila.FechaFin or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-stone-200 bg-stone-50 px-3 py-2.5 text-sm text-stone-600">
-      <span class="mt-1 block text-xs text-stone-400">Se completa automáticamente con la fecha fin.</span>
+      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Fecha límite de pago</span>
+      <input id="FechaUltimoPago" type="date" name="FechaUltimoPago" value="{{ fila.FechaUltimoPago or fila.FechaFin or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-line bg-surface2 px-3.5 py-2.5 text-sm text-soft">
+      <span class="mt-1 block text-xs text-soft">Se completa automáticamente con la fecha fin.</span>
     </label>
     {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
     <input type="hidden" name="Moneda" value="{{ fila.Moneda or 'CRC' }}">
     {{ textarea("Notas", "Notas", fila.Notas) }}
   </div>
-  <div class="mt-6 flex items-center justify-between">
-    <button type="submit" class="rounded-full bg-forest px-5 py-2.5 text-sm font-medium text-paper">Guardar</button>
+  <div class="mt-6 flex items-center justify-between border-t border-line pt-5">
+    <button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar</button>
     {% if fila.ID_Seguro %}
-    <button form="borrar" type="submit" class="text-sm text-red-700 hover:underline"
-            onclick="return confirm('¿Eliminar esta póliza?')">Eliminar</button>
+    <button form="borrar" type="submit" class="inline-flex items-center gap-1.5 text-sm text-red-600 hover:underline"
+            onclick="return confirm('¿Eliminar esta póliza?')">{{ icon("trash", "w-3.5 h-3.5") }} Eliminar</button>
     {% endif %}
   </div>
 </form>
+{% endcall %}
 <script>
   (function () {
     const fechaFin = document.querySelector('input[name="FechaFin"]');

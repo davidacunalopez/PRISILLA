@@ -1,96 +1,128 @@
 <!DOCTYPE html>
+{% from "_macros.html" import alert %}
+{% from "_icons.html" import icon %}
 {% set general = configuracion_general() %}
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <script>
+    (function () {
+      try {
+        var saved = localStorage.getItem("bitacora-theme");
+        var dark = saved ? saved === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
+        if (dark) document.documentElement.classList.add("dark");
+      } catch (_) {}
+    })();
+  </script>
   <title>{{ titulo }} · {{ general.nombre_app }}</title>
   <link rel="icon" type="image/png" href="/static/logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Outfit:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: "class",
       theme: {
         extend: {
           colors: {
-            paper: "#f4efe6",
-            ink: "#1c1917",
-            forest: { DEFAULT: "#1a2f28", 700: "#152620", 600: "#23483c", 400: "#3d6b5a", 100: "#dce8e2" },
-            gold: { DEFAULT: "#c4a35a", 100: "#f3ead2" },
+            bg: "rgb(var(--c-bg) / <alpha-value>)",
+            surface: "rgb(var(--c-surface) / <alpha-value>)",
+            surface2: "rgb(var(--c-surface-2) / <alpha-value>)",
+            line: "rgb(var(--c-line) / <alpha-value>)",
+            ink: "rgb(var(--c-ink) / <alpha-value>)",
+            soft: "rgb(var(--c-soft) / <alpha-value>)",
+            primary: "rgb(var(--c-primary) / <alpha-value>)",
+            accent: "rgb(var(--c-accent) / <alpha-value>)",
           },
           fontFamily: {
-            display: ["Fraunces", "Georgia", "serif"],
-            sans: ["Outfit", "system-ui", "sans-serif"],
+            display: ["Sora", "Inter", "system-ui", "sans-serif"],
+            sans: ["Inter", "system-ui", "sans-serif"],
           },
         },
       },
     };
   </script>
   <script src="https://unpkg.com/htmx.org@2.0.4"></script>
-  <link rel="stylesheet" href="/static/app.css">
+  <link rel="stylesheet" href="/static/app.css?v={{ static_version }}">
 </head>
-<body class="min-h-screen font-sans text-ink antialiased" hx-boost="true">
+<body class="min-h-screen bg-bg font-sans text-ink antialiased" hx-boost="true">
   <div class="flex min-h-screen">
-    <aside class="sidebar-scroll sticky top-0 flex h-screen w-64 shrink-0 flex-col overflow-y-auto bg-forest text-paper">
-      <div class="px-6 pb-4 pt-7">
-        <img src="/static/logo.png" alt="{{ general.nombre_app }}" class="mb-4 h-16 w-16 rounded-2xl object-cover ring-1 ring-gold/40">
-        <p class="text-[11px] uppercase tracking-[0.22em] text-gold">Bitácora local</p>
-        <h1 class="font-display text-3xl leading-none text-paper">{{ general.nombre_app }}</h1>
-        <p class="mt-1 text-sm text-forest-100/80">{{ general.nombre_empresa or "Transportes" }} · Costa Rica</p>
+    <aside class="sidebar-scroll sticky top-0 flex h-screen w-64 shrink-0 flex-col overflow-y-auto bg-gradient-to-b from-[#181a35] to-[#100f26] text-white">
+      <div class="px-6 pb-5 pt-7">
+        <div class="flex items-center gap-3">
+          <img src="/static/logo.png" alt="{{ general.nombre_app }}" class="h-11 w-11 rounded-xl object-cover ring-2 ring-white/15">
+          <div class="min-w-0">
+            <h1 class="truncate font-display text-xl font-bold leading-tight text-white">{{ general.nombre_app }}</h1>
+            <p class="truncate text-xs text-white/50">{{ general.nombre_empresa or "Transportes" }}</p>
+          </div>
+        </div>
       </div>
-      <nav class="flex flex-1 flex-col gap-0.5 px-3 pb-6">
+      <nav class="flex flex-1 flex-col gap-0.5 px-3 pb-4">
         {% set items = [
-          ("dashboard", "/", "Tablero"),
-          ("viajes", "/viajes", "Viajes"),
-          ("gasolina", "/gasolina", "Gasolina"),
-          ("camiones", "/camiones", "Camiones"),
-          ("seguros", "/seguros", "Seguros"),
-          ("estaciones", "/empresas", "Estaciones"),
-          ("choferes", "/choferes", "Choferes"),
-          ("ia", "/ia", "Pregúntale a la IA"),
-          ("configuracion", "/configuracion", "Configuración"),
+          ("dashboard", "/", "Tablero", "home", true),
+          ("viajes", "/viajes", "Viajes", "route", true),
+          ("gasolina", "/gasolina", "Gasolina", "fuel", true),
+          ("camiones", "/camiones", "Camiones", "truck", false),
+          ("seguros", "/seguros", "Seguros", "shield", false),
+          ("estaciones", "/empresas", "Estaciones", "building", false),
+          ("choferes", "/choferes", "Choferes", "users", false),
+          ("ia", "/ia", "Pregúntale a la IA", "chat", false),
+          ("configuracion", "/configuracion", "Configuración", "cog", false),
         ] %}
-        {% for key, href, label in items %}
+        {% for key, href, label, icon_name, prioridad in items %}
         <a href="{{ href }}"
-           class="rounded-lg px-3 py-2 text-sm transition {% if activo == key and key in ['dashboard', 'viajes', 'gasolina'] %}bg-white/10 font-semibold text-gold{% elif activo == key %}bg-white/10 text-white{% elif key in ['dashboard', 'viajes', 'gasolina'] %}font-semibold text-gold hover:bg-white/5 hover:text-white{% else %}text-forest-100/80 hover:bg-white/5 hover:text-white{% endif %}">
-          {{ label }}
+           class="flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition
+           {% if activo == key and prioridad %}bg-white/10 font-semibold text-accent
+           {% elif activo == key %}bg-white/10 font-semibold text-white
+           {% elif prioridad %}font-semibold text-accent hover:bg-white/5
+           {% else %}text-white/65 hover:bg-white/5 hover:text-white{% endif %}">
+          {{ icon(icon_name, "w-[18px] h-[18px] shrink-0") }}
+          <span class="truncate">{{ label }}</span>
         </a>
         {% endfor %}
-        <span class="mt-2 cursor-not-allowed rounded-lg px-3 py-2 text-sm text-white/30" title="Reservado para una versión futura">
-          Inventario <span class="ml-1 text-[10px] uppercase tracking-wider">Pronto</span>
+        <span class="mt-1 flex cursor-not-allowed items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm text-white/25">
+          {{ icon("box", "w-[18px] h-[18px] shrink-0") }}
+          Inventario <span class="ml-auto rounded-full bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider">Pronto</span>
         </span>
       </nav>
-      <p class="px-6 pb-5 text-[11px] leading-relaxed text-white/35">
-        Un solo usuario · datos en Excel · CRC
-      </p>
+      <div class="mx-3 mb-4 flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-3 py-2.5">
+        <p class="text-[11px] leading-relaxed text-white/40">Un solo usuario<br>datos en Excel · CRC</p>
+        <button type="button" onclick="alternarTema()" aria-label="Cambiar tema" title="Cambiar tema" class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white/80 transition hover:bg-white/20 hover:text-white">
+          <span class="theme-icon-sun">{{ icon("sun", "w-4 h-4") }}</span>
+          <span class="theme-icon-moon">{{ icon("moon", "w-4 h-4") }}</span>
+        </button>
+      </div>
     </aside>
 
     <main class="min-w-0 flex-1 px-8 py-8">
-      <header class="mb-7 flex flex-wrap items-end justify-between gap-4">
+      <header class="mb-7 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
         <div>
-          <p class="text-xs uppercase tracking-[0.18em] text-stone-500">{{ titulo }}</p>
-          <h2 class="font-display text-4xl text-forest">{% block heading %}{{ titulo }}{% endblock %}</h2>
+          <p class="text-xs font-semibold uppercase tracking-[0.18em] text-soft">{{ titulo }}</p>
+          <h2 class="font-display text-3xl font-bold text-ink sm:text-4xl">{% block heading %}{{ titulo }}{% endblock %}</h2>
           {% block subhead %}{% endblock %}
         </div>
         <div class="flex flex-wrap items-center gap-2">{% block actions %}{% endblock %}</div>
       </header>
-      {% set mensajes_error = {
-        "bloqueado": "No se pudo completar la acción: el archivo de datos está abierto en otro programa (por ejemplo Excel). Ciérrelo e inténtelo de nuevo.",
-        "carpeta": "No se pudo abrir la carpeta de exportaciones en el explorador de archivos.",
-        "fecha": "No se pudo renovar la póliza: la fecha de vencimiento registrada no es válida.",
-      } %}
       {% set codigo_error = request.query_params.get("error") %}
       {% if codigo_error %}
-      <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-        {{ mensajes_error.get(codigo_error, "Ocurrió un error inesperado. Intente de nuevo.") }}
-      </div>
+        {% set mensajes_error = {
+          "bloqueado": "No se pudo completar la acción: el archivo de datos está abierto en otro programa (por ejemplo Excel). Ciérrelo e inténtelo de nuevo.",
+          "carpeta": "No se pudo abrir la carpeta de exportaciones en el explorador de archivos.",
+          "fecha": "No se pudo renovar la póliza: la fecha de vencimiento registrada no es válida.",
+        } %}
+        {{ alert("danger", title="Algo no salió bien", message=mensajes_error.get(codigo_error, "Ocurrió un error inesperado. Intente de nuevo.")) }}
       {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>
   <script>
+    function alternarTema() {
+      const root = document.documentElement;
+      const oscuro = root.classList.toggle("dark");
+      try { localStorage.setItem("bitacora-theme", oscuro ? "dark" : "light"); } catch (_) {}
+    }
     function alternarSelectNuevo(select, wrapperId, inputId) {
       const esNueva = select.value === '__nueva__';
       const wrapper = document.getElementById(wrapperId);

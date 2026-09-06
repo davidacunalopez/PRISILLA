@@ -1,64 +1,59 @@
 {% extends "base.html" %}
-{% from "_macros.html" import btn_primary, vacio, badge_estado %}
+{% from "_macros.html" import btn_primary, vacio, badge_estado, alert %}
+{% from "_icons.html" import icon %}
 {% block heading %}Bitácora{% endblock %}
-{% block subhead %}<p class="mt-1 text-sm text-stone-500">Registre rutas, precios y datos operativos; filtre y exporte la bitácora para la contadora.</p>{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-soft">Registre rutas, precios y datos operativos; filtre y exporte la bitácora para la contadora.</p>{% endblock %}
 {% block actions %}
-<a href="/viajes/nuevo" class="inline-flex items-center gap-2 rounded-full bg-gold px-6 py-3 text-sm font-semibold text-forest shadow-lg ring-4 ring-gold/20 transition hover:-translate-y-0.5 hover:bg-amber-400">
-  <span class="flex h-6 w-6 items-center justify-center rounded-full bg-forest text-lg leading-none text-paper">+</span>
+<a href="/viajes/nuevo" class="inline-flex items-center gap-2 rounded-xl bg-accent px-6 py-3 text-sm font-semibold text-[rgb(var(--c-accent-ink))] shadow-lg shadow-accent/30 transition hover:-translate-y-0.5">
+  {{ icon("plus", "w-5 h-5") }}
   Registrar nuevo viaje
 </a>
 {% endblock %}
 {% block content %}
 {% if exportado %}
-<div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
-  <span>Exportación creada: <strong>{{ exportado }}</strong>, dentro de <code>data/exportaciones</code>.</span>
-  <form method="post" action="/viajes/abrir-exportaciones" hx-boost="false"><button type="submit" class="rounded-full border border-green-300 bg-white px-4 py-2 text-green-800">Abrir carpeta</button></form>
-</div>
+{{ alert("success", title="Exportación creada", message="El archivo " ~ exportado ~ " se guardó dentro de data/exportaciones.") }}
+<form method="post" action="/viajes/abrir-exportaciones" hx-boost="false" class="-mt-3 mb-5"><button type="submit" class="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface2">{{ icon("folder", "w-4 h-4") }} Abrir carpeta</button></form>
 {% endif %}
-{% if errores_mensaje %}
-<div class="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-  {% for error in errores_mensaje %}<p>{{ error }}</p>{% endfor %}
-</div>
-{% endif %}
+{% if errores_mensaje %}{{ alert("danger", title="No se pudo generar el mensaje", items=errores_mensaje) }}{% endif %}
 {% if mensaje_generado %}
-<section id="mensaje-contadora" class="mb-5 rounded-2xl border border-green-200 bg-green-50 p-5 shadow-sm">
+<section id="mensaje-contadora" class="mb-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-5 card-shadow dark:border-emerald-900/50 dark:bg-surface2">
   <div class="flex flex-wrap items-start justify-between gap-3">
     <div>
-      <h3 class="font-display text-xl text-forest">Mensaje para la contadora</h3>
-      <p class="mt-1 text-sm text-green-800">Los viajes incluidos quedaron marcados como enviados y sus precios fueron congelados.</p>
+      <h3 class="font-display text-lg font-semibold text-ink">Mensaje para la contadora</h3>
+      <p class="mt-1 text-sm text-emerald-700 dark:text-emerald-400">Los viajes incluidos quedaron marcados como enviados y sus precios fueron congelados.</p>
     </div>
-    <button type="button" id="copiar-mensaje" class="rounded-full bg-forest px-5 py-2.5 text-sm font-semibold text-paper">Copiar mensaje</button>
+    <button type="button" id="copiar-mensaje" class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">{{ icon("copy", "w-4 h-4") }} Copiar mensaje</button>
   </div>
-  <textarea id="texto-mensaje" readonly rows="12" class="mt-4 w-full rounded-xl border border-green-200 bg-white p-4 font-mono text-sm leading-6 text-stone-800">{{ mensaje_generado }}</textarea>
-  <p id="estado-copia" class="mt-2 text-xs text-green-700" aria-live="polite"></p>
+  <textarea id="texto-mensaje" readonly rows="12" class="mt-4 w-full rounded-xl border border-emerald-200 bg-surface p-4 font-mono text-sm leading-6 text-ink dark:border-emerald-900/50">{{ mensaje_generado }}</textarea>
+  <p id="estado-copia" class="mt-2 text-xs text-emerald-700 dark:text-emerald-400" aria-live="polite"></p>
 </section>
 {% endif %}
-<form method="get" class="mb-5 grid gap-3 rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+<form method="get" class="mb-5 grid gap-3 rounded-2xl border border-line bg-surface p-4 card-shadow sm:grid-cols-2 lg:grid-cols-4">
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Desde</span>
-    <input type="date" name="desde" value="{{ filtros.desde or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Desde</span>
+    <input type="date" name="desde" value="{{ filtros.desde or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Hasta</span>
-    <input type="date" name="hasta" value="{{ filtros.hasta or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Hasta</span>
+    <input type="date" name="hasta" value="{{ filtros.hasta or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Semanas</span>
-    <select name="semana" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Semanas</span>
+    <select name="semana" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       {% for s in semanas %}<option value="{{ s.value }}" {% if filtros.semana == s.value %}selected{% endif %}>{{ s.label }}</option>{% endfor %}
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Categoría</span>
-    <select name="categoria" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Categoría</span>
+    <select name="categoria" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       {% for categoria in categorias %}<option value="{{ categoria }}" {% if filtros.categoria == categoria %}selected{% endif %}>{{ categoria }}</option>{% endfor %}
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Salida</span>
-    <select name="salida" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Salida</span>
+    <select name="salida" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       {% for e in empresas %}
       <option value="{{ e.ID_Empresa }}" {% if filtros.salida == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}</option>
@@ -66,8 +61,8 @@
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Llegada</span>
-    <select name="llegada" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Llegada</span>
+    <select name="llegada" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       {% for e in empresas %}
       <option value="{{ e.ID_Empresa }}" {% if filtros.llegada == e.ID_Empresa %}selected{% endif %}>{{ e.NombreEmpresa }}</option>
@@ -75,57 +70,57 @@
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Contenedor</span>
-    <input type="text" name="contenedor" value="{{ filtros.contenedor or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Contenedor</span>
+    <input type="text" name="contenedor" value="{{ filtros.contenedor or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Chasis</span>
-    <input type="text" name="chasis" value="{{ filtros.chasis or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Chasis</span>
+    <input type="text" name="chasis" value="{{ filtros.chasis or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
   </label>
   <label class="text-sm sm:col-span-2">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Guía / TIR / Manifiesto</span>
-    <input type="text" name="guia" value="{{ filtros.guia or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Guía / TIR / Manifiesto</span>
+    <input type="text" name="guia" value="{{ filtros.guia or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Código de ruta</span>
-    <input type="text" name="codigo" value="{{ filtros.codigo or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Código de ruta</span>
+    <input type="text" name="codigo" value="{{ filtros.codigo or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Empresa de trabajo</span>
-    <select name="empresa_trabajo" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Empresa de trabajo</span>
+    <select name="empresa_trabajo" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       {% for empresa in empresas_trabajo %}<option value="{{ empresa }}" {% if filtros.empresa_trabajo == empresa %}selected{% endif %}>{{ empresa }}</option>{% endfor %}
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Moneda</span>
-    <select name="moneda" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Moneda</span>
+    <select name="moneda" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       {% for moneda in monedas %}<option value="{{ moneda }}" {% if filtros.moneda == moneda %}selected{% endif %}>{{ moneda }}</option>{% endfor %}
     </select>
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Precio</span>
-    <input type="number" min="0" step="0.01" name="precio" value="{{ filtros.precio or '' }}" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm" placeholder="Tarifa exacta">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Precio</span>
+    <input type="number" min="0" step="0.01" name="precio" value="{{ filtros.precio or '' }}" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" placeholder="Tarifa exacta">
   </label>
   <label class="text-sm">
-    <span class="mb-1 block text-xs uppercase tracking-wider text-stone-500">Enviada</span>
-    <select name="enviada" class="w-full rounded-xl border border-stone-300 px-3 py-2 text-sm">
+    <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Enviada</span>
+    <select name="enviada" class="w-full rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
       <option value="">Todas</option>
       <option value="no" {% if filtros.enviada == 'no' %}selected{% endif %}>Pendientes</option>
       <option value="si" {% if filtros.enviada == 'si' %}selected{% endif %}>Enviadas</option>
     </select>
   </label>
   <div class="flex flex-wrap items-end gap-2 sm:col-span-2 lg:col-span-4">
-    <button class="rounded-full bg-forest px-4 py-2 text-sm text-paper" type="submit">Filtrar</button>
-    <a class="rounded-full border border-stone-300 px-4 py-2 text-sm" href="/viajes">Limpiar</a>
-    <a class="rounded-full border border-stone-300 px-4 py-2 text-sm" hx-boost="false"
-       href="/viajes/exportar/xlsx{% if query_export %}?{{ query_export }}{% endif %}">Exportar Excel</a>
-    <a class="rounded-full border border-stone-300 px-4 py-2 text-sm" hx-boost="false"
-       href="/viajes/exportar/csv{% if query_export %}?{{ query_export }}{% endif %}">Exportar CSV</a>
-      <button form="generar-mensaje-form" type="submit" class="rounded-full bg-gold px-5 py-2 text-sm font-semibold text-forest shadow-sm" onclick="return confirm('¿Generar el mensaje con los viajes pendientes del filtro y marcarlos como enviados?')">Generar mensaje</button>
-      <label class="inline-flex items-center gap-2 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm {% if not ia_lista %}cursor-not-allowed opacity-50{% endif %}" title="{% if ia_lista %}Gemini mejorará la redacción sin cambiar las cifras{% else %}Configure Gemini para habilitar esta opción{% endif %}">
-        <input form="generar-mensaje-form" type="checkbox" name="usar_ia" value="1" {% if not ia_lista %}disabled{% endif %} class="accent-forest"> Con IA
+    <button class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5" type="submit">Filtrar</button>
+    <a class="rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface2" href="/viajes">Limpiar</a>
+    <a class="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface2" hx-boost="false"
+       href="/viajes/exportar/xlsx{% if query_export %}?{{ query_export }}{% endif %}">{{ icon("download", "w-4 h-4") }} Excel</a>
+    <a class="inline-flex items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink transition hover:bg-surface2" hx-boost="false"
+       href="/viajes/exportar/csv{% if query_export %}?{{ query_export }}{% endif %}">{{ icon("download", "w-4 h-4") }} CSV</a>
+      <button form="generar-mensaje-form" type="submit" class="inline-flex items-center gap-1.5 rounded-xl bg-accent px-5 py-2 text-sm font-semibold text-[rgb(var(--c-accent-ink))] shadow-sm shadow-accent/30 transition hover:-translate-y-0.5" onclick="return confirm('¿Generar el mensaje con los viajes pendientes del filtro y marcarlos como enviados?')">{{ icon("send", "w-4 h-4") }} Generar mensaje</button>
+      <label class="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2 text-sm {% if not ia_lista %}cursor-not-allowed opacity-50{% endif %}" title="{% if ia_lista %}Gemini mejorará la redacción sin cambiar las cifras{% else %}Configure Gemini para habilitar esta opción{% endif %}">
+        <input form="generar-mensaje-form" type="checkbox" name="usar_ia" value="1" {% if not ia_lista %}disabled{% endif %} class="accent-primary"> Con IA {{ icon("sparkle", "w-3.5 h-3.5 text-accent") }}
       </label>
   </div>
 </form>
@@ -135,19 +130,19 @@
 
 {% if filas %}
 <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
-  <p class="text-sm text-stone-500">{{ filas|length }} viaje(s) en el filtro actual.</p>
+  <p class="text-sm text-soft">{{ filas|length }} viaje(s) en el filtro actual.</p>
   <details id="selector-columnas" class="relative">
-    <summary class="cursor-pointer list-none rounded-full border border-stone-300 bg-white px-4 py-2 text-sm font-medium text-forest shadow-sm">Columnas</summary>
-    <div class="absolute right-0 z-20 mt-2 grid w-64 grid-cols-2 gap-2 rounded-xl border border-stone-200 bg-white p-4 text-sm shadow-xl">
+    <summary class="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink shadow-sm">{{ icon("filter", "w-4 h-4") }} Columnas</summary>
+    <div class="absolute right-0 z-20 mt-2 grid w-64 grid-cols-2 gap-2 rounded-xl border border-line bg-surface p-4 text-sm shadow-xl">
       {% for clave, etiqueta in [('semana','Semana'),('empresa','Empresa'),('camion','Camión'),('chofer','Chofer'),('contenedor','Contenedor'),('chasis','Chasis'),('guia','Guía / TIR'),('estado','Estado')] %}
-      <label class="flex items-center gap-2"><input type="checkbox" data-column-toggle="{{ clave }}" class="accent-forest"> {{ etiqueta }}</label>
+      <label class="flex items-center gap-2"><input type="checkbox" data-column-toggle="{{ clave }}" class="accent-primary"> {{ etiqueta }}</label>
       {% endfor %}
     </div>
   </details>
 </div>
-<div class="table-wrap overflow-x-auto rounded-2xl border border-stone-200 bg-white shadow-sm">
+<div class="table-wrap overflow-x-auto rounded-2xl border border-line bg-surface card-shadow">
   <table id="tabla-viajes" class="data viajes-table min-w-[860px] w-full text-left text-sm">
-    <thead class="bg-paper/80">
+    <thead class="bg-surface2">
       <tr>
         <th data-column="fecha" class="px-3 py-3">Fecha</th>
         <th data-column="semana" class="px-3 py-3">Semana</th>
@@ -168,11 +163,11 @@
     </thead>
     <tbody>
       {% for v in filas %}
-      <tr class="border-t border-stone-100 hover:bg-paper/60">
+      <tr class="border-t border-line hover:bg-surface2/70">
         <td data-column="fecha" class="px-3 py-3 whitespace-nowrap">{{ v.fecha_txt }}</td>
         <td data-column="semana" class="px-3 py-3 whitespace-nowrap">Semana {{ v.Semana }}</td>
         <td data-column="codigo" class="px-3 py-3 font-medium">{{ v.CodigoRuta or "—" }}</td>
-        <td data-column="categoria" class="px-3 py-3"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {% if v.Categoria == 'Ruptura' %}bg-violet-100 text-violet-800 ring-1 ring-violet-200{% elif v.Categoria == 'Desvío' %}bg-amber-100 text-amber-800{% else %}bg-forest-100 text-forest{% endif %}">{{ v.Categoria or "Viaje completo" }}</span></td>
+        <td data-column="categoria" class="px-3 py-3"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {% if v.Categoria == 'Ruptura' %}bg-violet-100 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/30{% elif v.Categoria == 'Desvío' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300{% else %}bg-primary/10 text-primary{% endif %}">{{ v.Categoria or "Viaje completo" }}</span></td>
         <td data-column="ruta" class="px-3 py-3 min-w-36">{% if v.Categoria == 'Ruptura' and v.salida == v.llegada %}{{ v.salida }}{% else %}{{ v.salida }} → {{ v.llegada }}{% endif %}</td>
         <td data-column="empresa" class="px-3 py-3">{{ v.EmpresaTrabajo or "—" }}</td>
         <td data-column="precio" class="px-3 py-3 whitespace-nowrap font-medium">{{ v.precio_txt }}</td>
@@ -180,7 +175,7 @@
           <form method="post" action="/viajes/{{ v.ID_Viaje }}/enviada" hx-boost="false">
             <input type="hidden" name="Enviada" value="{{ 'false' if v.Enviada else 'true' }}">
             <input type="hidden" name="query" value="{{ query_export }}">
-            <input type="checkbox" {% if v.Enviada %}checked{% endif %} onchange="this.form.submit()" aria-label="Enviada: {{ v.CodigoRuta or v.ID_Viaje }}" class="h-4 w-4 cursor-pointer accent-forest">
+            <input type="checkbox" {% if v.Enviada %}checked{% endif %} onchange="this.form.submit()" aria-label="Enviada: {{ v.CodigoRuta or v.ID_Viaje }}" class="h-4 w-4 cursor-pointer accent-primary">
           </form>
         </td>
         <td data-column="camion" class="px-3 py-3">{{ v.placa }}</td>
@@ -190,7 +185,7 @@
         <td data-column="guia" class="px-3 py-3">{{ v.GuiaTirManifiesto or "—" }}</td>
         <td data-column="estado" class="px-3 py-3">{{ badge_estado(v.Estado) }}</td>
         <td data-column="acciones" class="px-3 py-3 text-right whitespace-nowrap">
-          <a class="text-forest-400 hover:underline" href="/viajes/{{ v.ID_Viaje }}/editar">Editar</a>
+          <a class="text-primary hover:underline" href="/viajes/{{ v.ID_Viaje }}/editar">Editar</a>
         </td>
       </tr>
       {% endfor %}
@@ -198,7 +193,7 @@
   </table>
 </div>
 {% else %}
-{{ vacio("No hay viajes con esos filtros.") }}
+{{ vacio("No hay viajes con esos filtros.", "/viajes/nuevo", "Registrar viaje", "route") }}
 {% endif %}
 <script>
   (function () {

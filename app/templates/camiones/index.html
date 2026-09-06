@@ -1,13 +1,14 @@
 {% extends "base.html" %}
 {% from "_macros.html" import btn_primary, vacio, badge_estado %}
+{% from "_icons.html" import icon %}
 {% block heading %}Flota{% endblock %}
-{% block subhead %}<p class="mt-1 text-sm text-stone-500">{{ filas|length }} camión(es) en el libro.</p>{% endblock %}
-{% block actions %}{{ btn_primary("/camiones/nuevo", "Nuevo camión") }}{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-soft">{{ filas|length }} camión(es) en el libro.</p>{% endblock %}
+{% block actions %}{{ btn_primary("/camiones/nuevo", "Nuevo camión", "plus") }}{% endblock %}
 {% block content %}
 {% if filas %}
-<div class="table-wrap overflow-hidden rounded-2xl border border-stone-200 bg-white shadow-sm">
+<div class="table-wrap overflow-hidden rounded-2xl border border-line bg-surface card-shadow">
   <table class="data w-full text-left text-sm">
-    <thead class="bg-paper/80">
+    <thead class="bg-surface2">
       <tr>
         <th class="px-4 py-3">Placa</th>
         <th class="px-4 py-3">Marca / modelo</th>
@@ -20,19 +21,19 @@
     </thead>
     <tbody>
       {% for c in filas %}
-      <tr class="border-t border-stone-100 hover:bg-paper/60">
+      <tr class="border-t border-line hover:bg-surface2/70">
         <td class="px-4 py-3 font-medium">{{ c.Placa }}</td>
         <td class="px-4 py-3">{{ c.Marca }} {{ c.Modelo }}</td>
         <td class="px-4 py-3">{{ c.Anio or "—" }}</td>
         <td class="px-4 py-3">{{ c.Capacidad or "—" }}</td>
         <td class="px-4 py-3">{{ c.chofer_predeterminado or "Sin asignar" }}</td>
         <td class="px-4 py-3">{{ badge_estado(c.Estado) }}</td>
-        <td class="px-4 py-3 text-right">
-          {% if c.Estado == "Activo" %}<a class="text-forest-400 hover:underline" href="/seguros/nuevo?camion={{ c.ID_Camion }}">Póliza</a><span class="mx-1 text-stone-300">·</span>{% endif %}
-          <a class="text-forest-400 hover:underline" href="/camiones/{{ c.ID_Camion }}/editar">Editar</a>
-          <span class="mx-1 text-stone-300">·</span>
+        <td class="px-4 py-3 text-right whitespace-nowrap">
+          {% if c.Estado == "Activo" %}<a class="text-primary hover:underline" href="/seguros/nuevo?camion={{ c.ID_Camion }}">Póliza</a><span class="mx-1.5 text-line">·</span>{% endif %}
+          <a class="text-primary hover:underline" href="/camiones/{{ c.ID_Camion }}/editar">Editar</a>
+          <span class="mx-1.5 text-line">·</span>
           <form method="post" action="/camiones/{{ c.ID_Camion }}/{{ 'reactivar' if c.Estado == 'Inactivo' else 'archivar' }}" class="inline" hx-boost="false">
-            <button class="text-stone-500 hover:underline" type="submit" onclick="return confirm('¿{{ 'Reactivar' if c.Estado == 'Inactivo' else 'Archivar' }} este camión?')">{{ "Reactivar" if c.Estado == "Inactivo" else "Archivar" }}</button>
+            <button class="text-soft hover:underline" type="submit" onclick="return confirm('¿{{ 'Reactivar' if c.Estado == 'Inactivo' else 'Archivar' }} este camión?')">{{ "Reactivar" if c.Estado == "Inactivo" else "Archivar" }}</button>
           </form>
         </td>
       </tr>
@@ -41,6 +42,6 @@
   </table>
 </div>
 {% else %}
-{{ vacio("No hay camiones. Cargue la flota para poder registrar seguros y viajes.") }}
+{{ vacio("No hay camiones. Cargue la flota para poder registrar seguros y viajes.", "/camiones/nuevo", "Nuevo camión", "truck") }}
 {% endif %}
 {% endblock %}

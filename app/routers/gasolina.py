@@ -248,7 +248,9 @@ async def _guardar_formulario(request: Request, id_registro: str = ""):
             _ctx(request, fila=fila, accion=accion, errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/gasolina", status_code=303)
+    return RedirectResponse(
+        f"/gasolina?ok={'actualizado' if id_registro else 'creado'}", status_code=303
+    )
 
 
 @router.post("", response_class=HTMLResponse)
@@ -267,4 +269,4 @@ async def borrar(request: Request, id_registro: str):
         excel_repo.eliminar(HOJA, id_registro)
     except (ExcelBloqueadoError, KeyError):
         return RedirectResponse("/gasolina?error=bloqueado", status_code=303)
-    return RedirectResponse("/gasolina", status_code=303)
+    return RedirectResponse("/gasolina?ok=eliminado", status_code=303)

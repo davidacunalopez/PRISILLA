@@ -354,8 +354,14 @@ async def generar_mensaje(request: Request):
     )
 
 
+REPETIBLES = (
+    "Fecha", "Semana", "ID_Salida", "ID_Llegada",
+    "ID_Camion", "ID_Chofer", "EmpresaTrabajo", "Categoria",
+)
+
+
 @router.get("/nuevo", response_class=HTMLResponse)
-async def nuevo(request: Request):
+async def nuevo(request: Request, repetir: str = ""):
     templates = request.app.state.templates
     fila = fila_vacia(HOJA)
     fila["Fecha"] = date.today().isoformat()
@@ -364,10 +370,16 @@ async def nuevo(request: Request):
     fila["Categoria"] = "Viaje completo"
     fila["Estado"] = "Pendiente"
     fila["Enviada"] = False
+    anterior = excel_repo.leer_por_id(HOJA, repetir) if repetir else None
+    if anterior:
+        for campo in REPETIBLES:
+            if anterior.get(campo):
+                fila[campo] = anterior[campo]
+        fila["Fecha"] = _fecha_viaje(anterior) or fila["Fecha"]
     return templates.TemplateResponse(
         request,
         "viajes/_form.html",
-        _ctx(request, fila=fila, accion="/viajes", errores=[]),
+        _ctx(request, fila=fila, accion="/viajes", errores=[], repitiendo=bool(anterior)),
     )
 
 
@@ -408,7 +420,7 @@ async def crear(request: Request):
             status_code=422,
         )
     try:
-        excel_repo.insertar(HOJA, datos)
+        creado = excel_repo.insertar(HOJA, datos)
     except ExcelBloqueadoError as exc:
         return templates.TemplateResponse(
             request,
@@ -416,7 +428,11 @@ async def crear(request: Request):
             _ctx(request, fila={**fila_vacia(HOJA), **datos}, accion="/viajes", errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/viajes", status_code=303)
+    form = await request.form()
+    if str(form.get("accion_guardar") or "") == "otro":
+        destino = urlencode({"repetir": creado.get("ID_Viaje", ""), "ok": "creado_otro"})
+        return RedirectResponse(f"/viajes/nuevo?{destino}", status_code=303)
+    return RedirectResponse("/viajes?ok=creado", status_code=303)
 
 
 @router.post("/{id_viaje}", response_class=HTMLResponse)
@@ -446,7 +462,7 @@ async def guardar(request: Request, id_viaje: str):
             _ctx(request, fila=fila, accion=f"/viajes/{id_viaje}", errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/viajes", status_code=303)
+    return RedirectResponse("/viajes?ok=actualizado", status_code=303)
 
 
 @router.post("/{id_viaje}/enviar")
@@ -455,7 +471,7 @@ async def marcar_enviado(request: Request, id_viaje: str):
         excel_repo.actualizar(HOJA, id_viaje, {"Enviada": True, "Estado": "Enviado a contadora"})
     except ExcelBloqueadoError:
         return RedirectResponse("/viajes?error=bloqueado", status_code=303)
-    return RedirectResponse("/viajes", status_code=303)
+    return RedirectResponse("/viajes?ok=enviado", status_code=303)
 
 
 @router.post("/{id_viaje}/enviada")
@@ -477,8 +493,9 @@ async def cambiar_enviada(request: Request, id_viaje: str):
         excel_repo.actualizar(HOJA, id_viaje, cambios)
     except (ExcelBloqueadoError, KeyError):
         return RedirectResponse("/viajes?error=bloqueado", status_code=303)
-    query = str(form.get("query") or "")
-    return RedirectResponse(f"/viajes?{query}" if query else "/viajes", status_code=303)
+    filtros = [(k, v) for k, v in parse_qsl(str(form.get("query") or "")) if k != "ok"]
+    filtros.append(("ok", "enviado" if enviada else "pendiente"))
+    return RedirectResponse(f"/viajes?{urlencode(filtros)}", status_code=303)
 
 
 @router.post("/{id_viaje}/eliminar")
@@ -487,4 +504,4 @@ async def borrar(request: Request, id_viaje: str):
         excel_repo.eliminar(HOJA, id_viaje)
     except (ExcelBloqueadoError, KeyError):
         return RedirectResponse("/viajes?error=bloqueado", status_code=303)
-    return RedirectResponse("/viajes", status_code=303)
+    return RedirectResponse("/viajes?ok=eliminado", status_code=303)

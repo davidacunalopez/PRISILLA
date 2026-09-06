@@ -72,7 +72,7 @@ async def crear(request: Request):
             _ctx(request, fila={**fila_vacia(HOJA), **datos}, accion="/empresas", errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/empresas", status_code=303)
+    return RedirectResponse("/empresas?ok=creado", status_code=303)
 
 
 @router.post("/{id_empresa}", response_class=HTMLResponse)
@@ -97,7 +97,7 @@ async def guardar(request: Request, id_empresa: str):
             _ctx(request, fila=fila, accion=f"/empresas/{id_empresa}", errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/empresas", status_code=303)
+    return RedirectResponse("/empresas?ok=actualizado", status_code=303)
 
 
 @router.post("/{id_empresa}/archivar")
@@ -106,7 +106,7 @@ async def archivar(request: Request, id_empresa: str):
         excel_repo.actualizar(HOJA, id_empresa, {"Estado": "Inactivo"})
     except (ExcelBloqueadoError, KeyError):
         return RedirectResponse("/empresas?error=bloqueado", status_code=303)
-    return RedirectResponse("/empresas", status_code=303)
+    return RedirectResponse("/empresas?ok=archivado", status_code=303)
 
 
 @router.post("/{id_empresa}/reactivar")
@@ -115,4 +115,4 @@ async def reactivar(request: Request, id_empresa: str):
         excel_repo.actualizar(HOJA, id_empresa, {"Estado": "Activo"})
     except (ExcelBloqueadoError, KeyError):
         return RedirectResponse("/empresas?error=bloqueado", status_code=303)
-    return RedirectResponse("/empresas", status_code=303)
+    return RedirectResponse("/empresas?ok=reactivado", status_code=303)

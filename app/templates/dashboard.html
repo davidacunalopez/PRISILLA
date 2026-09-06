@@ -10,6 +10,42 @@
 <a href="/viajes/nuevo" class="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-4 py-2.5 text-sm font-medium text-ink transition hover:bg-surface2 hover:-translate-y-0.5">{{ icon("route", "w-4 h-4") }} Nuevo viaje</a>
 {% endblock %}
 {% block content %}
+<section class="mb-6 overflow-hidden rounded-2xl border border-primary/25 bg-gradient-to-br from-primary/10 via-surface to-accent/10 p-6 card-shadow">
+  <div class="flex flex-wrap items-end justify-between gap-5">
+    <div>
+      <p class="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+        {{ icon("route", "w-4 h-4") }} Semana {{ semana.numero }} en curso
+      </p>
+      <div class="mt-3 flex flex-wrap items-end gap-x-8 gap-y-3">
+        <div>
+          <p class="font-display text-4xl font-bold leading-none text-ink">{{ semana.registrados }}</p>
+          <p class="mt-1 text-sm text-soft">viaje(s) registrados</p>
+        </div>
+        <div>
+          <p class="font-display text-4xl font-bold leading-none {% if semana.pendientes %}text-accent{% else %}text-emerald-600{% endif %}">{{ semana.pendientes }}</p>
+          <p class="mt-1 text-sm text-soft">sin enviar a la contadora</p>
+        </div>
+        <div>
+          <p class="font-display text-2xl font-bold leading-none text-ink">{{ semana.total_crc_txt }}{% if semana.total_usd_txt %} <span class="text-soft">+</span> {{ semana.total_usd_txt }}{% endif %}</p>
+          <p class="mt-1 text-sm text-soft">tarifas de la semana</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col items-start gap-2">
+      {% if semana.pendientes %}
+      <a href="/viajes?enviada=no" class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">
+        Ver pendientes {{ icon("arrow-right", "w-4 h-4") }}
+      </a>
+      {% else %}
+      <span class="inline-flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-5 py-2.5 text-sm font-semibold text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-500/10 dark:text-emerald-400">
+        {{ icon("check-circle", "w-4 h-4") }} Todo enviado
+      </span>
+      {% endif %}
+      <p class="text-xs text-soft">Corte: lunes al mediodía</p>
+    </div>
+  </div>
+</section>
+
 <section class="mb-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
   {{ stat("Vencidos o críticos", alertas.rojos|length, "Umbral rojo (≤ " ~ general.umbral_rojo_dias ~ " días o vencido)", tone="danger") }}
   {{ stat("Por vencer", alertas.amarillos|length, "Umbral amarillo (" ~ (general.umbral_rojo_dias + 1) ~ "–" ~ general.umbral_amarillo_dias ~ " días)", tone="warning") }}

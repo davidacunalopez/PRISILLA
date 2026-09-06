@@ -3,7 +3,7 @@ from __future__ import annotations
 import tempfile
 import unittest
 import os
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +13,7 @@ from openpyxl import load_workbook
 from app import config as app_config
 from app.db import excel_repo, plantilla_base
 from app.main import app
+from app.routers import dashboard as dashboard_router
 from app.routers import viajes as viajes_router
 from app.services.exportar import viajes_csv
 from app.services.fechas import semaforo
@@ -601,6 +602,106 @@ class LibroTemporalTest(unittest.TestCase):
         )
         self.assertEqual(respuesta.status_code, 303)
         self.assertIn("Cliente Nuevo", app_config.load_config()["empresas_trabajo"])
+
+    def test_guardar_y_registrar_otro_precarga_los_campos_repetidos(self):
+        salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "Finca", "Estado": "Activo"})
+        llegada = excel_repo.insertar("Empresas", {"NombreEmpresa": "Puerto", "Estado": "Activo"})
+        camion = excel_repo.insertar("Camiones", {"Placa": "LOTE1", "Marca": "M", "Estado": "Activo"})
+        chofer = excel_repo.insertar("Choferes", {"Nombre": "Rita", "Estado": "Activo"})
+        self._configurar_ruta(salida["ID_Empresa"], llegada["ID_Empresa"])
+        cliente = TestClient(app)
+        respuesta = cliente.post(
+            "/viajes",
+            data={
+                "Fecha": "2026-08-15",
+                "ID_Salida": salida["ID_Empresa"],
+                "ID_Llegada": llegada["ID_Empresa"],
+                "ID_Camion": camion["ID_Camion"],
+                "ID_Chofer": chofer["ID_Chofer"],
+                "EmpresaTrabajo": "TCC",
+                "Contenedor": "CONT-001",
+                "Categoria": "Viaje completo",
+                "Estado": "Pendiente",
+                "accion_guardar": "otro",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(respuesta.status_code, 303)
+        destino = respuesta.headers["location"]
+        self.assertIn("/viajes/nuevo?repetir=", destino)
+
+        formulario = cliente.get(destino)
+        self.assertEqual(formulario.status_code, 200)
+        self.assertIn(f'<option value="{salida["ID_Empresa"]}" selected>', formulario.text)
+        self.assertIn(f'<option value="{llegada["ID_Empresa"]}" selected>', formulario.text)
+        self.assertIn(f'value="{camion["ID_Camion"]}" data-chofer="" selected', formulario.text)
+        self.assertIn('<option value="TCC" selected>', formulario.text)
+        self.assertIn('name="Contenedor" type="text" value=""', formulario.text)
+
+    def test_guardado_confirma_con_mensaje_de_exito(self):
+        cliente = TestClient(app)
+        respuesta = cliente.post(
+            "/camiones",
+            data={"Placa": "OKB1", "Marca": "Freightliner", "Estado": "Activo"},
+            follow_redirects=False,
+        )
+        self.assertEqual(respuesta.headers["location"], "/camiones?ok=creado")
+        pagina = cliente.get(respuesta.headers["location"])
+        self.assertIn("Registro guardado correctamente", pagina.text)
+
+    def test_marcar_enviada_conserva_los_filtros_y_confirma(self):
+        viaje = excel_repo.insertar(
+            "Viajes", {"Fecha": "2026-08-15", "Estado": "Pendiente", "Enviada": False}
+        )
+        respuesta = TestClient(app).post(
+            f"/viajes/{viaje['ID_Viaje']}/enviada",
+            data={"Enviada": "true", "query": "semana=33&enviada=no"},
+            follow_redirects=False,
+        )
+        self.assertEqual(respuesta.status_code, 303)
+        destino = respuesta.headers["location"]
+        self.assertIn("semana=33", destino)
+        self.assertIn("enviada=no", destino)
+        self.assertIn("ok=enviado", destino)
+        guardado = excel_repo.leer_por_id("Viajes", viaje["ID_Viaje"])
+        self.assertEqual(guardado["Estado"], "Enviado a contadora")
+
+    def test_tablero_resume_solo_la_semana_en_curso(self):
+        hoy = date.today()
+        excel_repo.insertar(
+            "Viajes",
+            {"Fecha": hoy.isoformat(), "Estado": "Pendiente", "Enviada": False, "Precio": 1000, "Moneda": "CRC"},
+        )
+        excel_repo.insertar(
+            "Viajes",
+            {
+                "Fecha": hoy.isoformat(),
+                "Estado": "Enviado a contadora",
+                "Enviada": True,
+                "Precio": 2000,
+                "Moneda": "CRC",
+            },
+        )
+        excel_repo.insertar(
+            "Viajes",
+            {
+                "Fecha": (hoy - timedelta(days=60)).isoformat(),
+                "Estado": "Pendiente",
+                "Enviada": False,
+                "Precio": 5000,
+                "Moneda": "CRC",
+            },
+        )
+
+        resumen = dashboard_router._resumen_semana(excel_repo.leer("Viajes"))
+        self.assertEqual(resumen["numero"], hoy.isocalendar()[1])
+        self.assertEqual(resumen["registrados"], 2)
+        self.assertEqual(resumen["pendientes"], 1)
+        self.assertEqual(resumen["total_crc_txt"], "₡3.000,00")
+
+        pagina = TestClient(app).get("/")
+        self.assertIn(f"Semana {hoy.isocalendar()[1]} en curso", pagina.text)
+        self.assertIn("sin enviar a la contadora", pagina.text)
 
     def test_tarifa_actualiza_pendientes_y_congela_viajes_enviados(self):
         salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "Origen", "Estado": "Activo"})

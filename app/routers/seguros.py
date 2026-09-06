@@ -121,7 +121,7 @@ async def crear(request: Request):
             _ctx(request, fila={**fila_vacia(HOJA), **datos}, accion="/seguros", errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/seguros", status_code=303)
+    return RedirectResponse("/seguros?ok=creado", status_code=303)
 
 
 @router.post("/{id_seguro}", response_class=HTMLResponse)
@@ -147,7 +147,7 @@ async def guardar(request: Request, id_seguro: str):
             _ctx(request, fila=fila, accion=f"/seguros/{id_seguro}", errores=[str(exc)]),
             status_code=409,
         )
-    return RedirectResponse("/seguros", status_code=303)
+    return RedirectResponse("/seguros?ok=actualizado", status_code=303)
 
 
 @router.post("/{id_seguro}/renovar")
@@ -179,7 +179,7 @@ async def renovar(request: Request, id_seguro: str):
         excel_repo.actualizar_e_insertar(HOJA, id_seguro, {"Estado": "Renovado"}, nuevo)
     except ExcelBloqueadoError:
         return RedirectResponse("/seguros?error=bloqueado", status_code=303)
-    return RedirectResponse("/seguros", status_code=303)
+    return RedirectResponse("/seguros?ok=renovado", status_code=303)
 
 
 @router.post("/{id_seguro}/eliminar")
@@ -188,4 +188,4 @@ async def borrar(request: Request, id_seguro: str):
         excel_repo.eliminar(HOJA, id_seguro)
     except (ExcelBloqueadoError, KeyError):
         return RedirectResponse("/seguros?error=bloqueado", status_code=303)
-    return RedirectResponse("/seguros", status_code=303)
+    return RedirectResponse("/seguros?ok=eliminado", status_code=303)

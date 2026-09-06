@@ -336,8 +336,24 @@ class LibroTemporalTest(unittest.TestCase):
         camion = cliente.get("/camiones/nuevo")
         self.assertIn('<select name="Marca"', camion.text)
         self.assertIn("Administrar marcas", camion.text)
+        self.assertIn("Agregar marca nueva", camion.text)
         configuracion = cliente.get("/configuracion")
         self.assertIn('name="marcas_camiones"', configuracion.text)
+
+    def test_marca_nueva_se_registra_al_vuelo_desde_camiones(self):
+        respuesta = TestClient(app).post(
+            "/camiones",
+            data={"Placa": "NEW123", "Marca": "Scania", "Estado": "Activo"},
+            follow_redirects=False,
+        )
+        self.assertEqual(respuesta.status_code, 303)
+        self.assertIn("Scania", app_config.load_config()["marcas_camiones"])
+        camiones = excel_repo.leer("Camiones")
+        self.assertEqual(camiones[0]["Marca"], "Scania")
+
+    def test_error_bloqueado_muestra_aviso_visible(self):
+        respuesta = TestClient(app).get("/camiones?error=bloqueado")
+        self.assertIn("está abierto en otro programa", respuesta.text)
 
     def test_exportar_guarda_el_archivo_y_muestra_confirmacion(self):
         respuesta = TestClient(app).get("/viajes/exportar/xlsx", follow_redirects=False)
@@ -562,6 +578,29 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertEqual(respuesta.status_code, 422)
         self.assertIn("Seleccione la empresa para la que se realiza el viaje", respuesta.text)
         self.assertEqual(excel_repo.leer("Viajes"), [])
+
+    def test_empresa_trabajo_nueva_se_registra_al_vuelo_desde_viajes(self):
+        salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "A", "Estado": "Activo"})
+        llegada = excel_repo.insertar("Empresas", {"NombreEmpresa": "B", "Estado": "Activo"})
+        camion = excel_repo.insertar("Camiones", {"Placa": "EMP2", "Marca": "M", "Estado": "Activo"})
+        chofer = excel_repo.insertar("Choferes", {"Nombre": "Ana", "Estado": "Activo"})
+        self._configurar_ruta(salida["ID_Empresa"], llegada["ID_Empresa"])
+        respuesta = TestClient(app).post(
+            "/viajes",
+            data={
+                "Fecha": "2026-08-15",
+                "ID_Salida": salida["ID_Empresa"],
+                "ID_Llegada": llegada["ID_Empresa"],
+                "ID_Camion": camion["ID_Camion"],
+                "ID_Chofer": chofer["ID_Chofer"],
+                "EmpresaTrabajo": "Cliente Nuevo",
+                "Categoria": "Viaje completo",
+                "Estado": "Pendiente",
+            },
+            follow_redirects=False,
+        )
+        self.assertEqual(respuesta.status_code, 303)
+        self.assertIn("Cliente Nuevo", app_config.load_config()["empresas_trabajo"])
 
     def test_tarifa_actualiza_pendientes_y_congela_viajes_enviados(self):
         salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "Origen", "Estado": "Activo"})

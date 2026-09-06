@@ -9,10 +9,16 @@
     {{ field("Placa", "Placa", fila.Placa, required=true) }}
     <label class="block">
       <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Marca *</span>
-      <select name="Marca" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+      <select name="Marca" id="MarcaSelect" required onchange="alternarSelectNuevo(this, 'marca-nueva-wrapper', 'MarcaNueva')" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
         <option value="">Seleccione…</option>
         {% for marca in marcas %}<option value="{{ marca }}" {% if fila.Marca == marca %}selected{% endif %}>{{ marca }}</option>{% endfor %}
+        <option value="__nueva__">+ Agregar marca nueva…</option>
       </select>
+      <div id="marca-nueva-wrapper" class="mt-2 hidden">
+        <input id="MarcaNueva" name="Marca" type="text" maxlength="50" disabled placeholder="Nombre de la marca nueva"
+               class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <button type="button" onclick="cancelarSelectNuevo('MarcaSelect','marca-nueva-wrapper','MarcaNueva')" class="mt-1 text-xs text-stone-500 hover:underline">Cancelar, elegir de la lista</button>
+      </div>
       <a href="/configuracion#marcas" class="mt-1 inline-block text-xs text-forest-400 hover:underline">Administrar marcas</a>
     </label>
     {{ field("Modelo", "Modelo", fila.Modelo) }}

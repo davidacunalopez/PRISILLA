@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app.db import excel_repo
 from app.db.excel_repo import ExcelBloqueadoError
 from app.db.schema import HOJAS, fila_vacia
-from app.config import load_config
+from app.config import load_config, save_config
 from app.services.formularios import datos_form, validar
 
 router = APIRouter(prefix="/camiones")
@@ -23,10 +23,23 @@ def _marcas() -> list[str]:
     return sorted(unicas.values(), key=str.casefold)
 
 
-def _validar_marca(datos: dict, errores: list[str]) -> None:
+def _normalizar_marca(datos: dict, errores: list[str]) -> None:
+    """Si el usuario escribió una marca nueva (en vez de elegir una existente), la registra en Configuración."""
     marca = str(datos.get("Marca") or "").strip()
-    if marca and marca.casefold() not in {m.casefold() for m in _marcas()}:
-        errores.append("Seleccione una marca registrada en Configuración.")
+    datos["Marca"] = marca
+    if not marca:
+        return
+    if len(marca) > 50:
+        errores.append("La marca no puede tener más de 50 caracteres.")
+        return
+    if any(c in marca for c in "\r\n"):
+        errores.append("La marca debe ocupar una sola línea.")
+        return
+    if marca.casefold() not in {m.casefold() for m in _marcas()}:
+        cfg = load_config()
+        marcas = list(cfg.get("marcas_camiones") or [])
+        marcas.append(marca)
+        save_config({"marcas_camiones": marcas})
 
 
 def _ctx(request: Request, **extra):
@@ -90,7 +103,7 @@ async def crear(request: Request):
     datos = await datos_form(request, HOJA)
     datos["Placa"] = datos.get("Placa", "").upper()
     errores = validar(HOJA, datos)
-    _validar_marca(datos, errores)
+    _normalizar_marca(datos, errores)
     if errores:
         return templates.TemplateResponse(
             request,
@@ -116,7 +129,7 @@ async def guardar(request: Request, id_camion: str):
     datos = await datos_form(request, HOJA)
     datos["Placa"] = datos.get("Placa", "").upper()
     errores = validar(HOJA, datos, id_camion)
-    _validar_marca(datos, errores)
+    _normalizar_marca(datos, errores)
     fila = {**(excel_repo.leer_por_id(HOJA, id_camion) or fila_vacia(HOJA)), **datos, "ID_Camion": id_camion}
     if errores:
         return templates.TemplateResponse(

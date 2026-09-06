@@ -1,5 +1,5 @@
 {
-  "nombre_app": "Prisilla",
+  "nombre_app": "Priscilla",
   "nombre_empresa": "",
   "umbral_amarillo_dias": 28,
   "umbral_rojo_dias": 7,
@@ -40,6 +40,13 @@
       "llegada": "EMP-003",
       "codigo": "33321",
       "precio": 12561.0,
+      "moneda": "CRC"
+    },
+    {
+      "salida": "EMP-003",
+      "llegada": "EMP-007",
+      "codigo": "35145",
+      "precio": 1221.12,
       "moneda": "CRC"
     }
   ]

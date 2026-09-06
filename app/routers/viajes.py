@@ -8,7 +8,7 @@ from urllib.parse import parse_qsl, quote, urlencode
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app.config import EXPORT_DIR, gemini_settings, load_config
+from app.config import EXPORT_DIR, gemini_settings, load_config, save_config
 from app.db import excel_repo
 from app.db.excel_repo import ExcelBloqueadoError
 from app.db.schema import HOJAS, fila_vacia
@@ -111,11 +111,16 @@ def _preparar_datos(datos: dict, original: dict | None = None) -> list[str]:
             "La ruta seleccionada no tiene un precio vigente configurado. "
             "Agréguelo en Configuración → Códigos de rutas."
         )
-    empresas_trabajo = load_config().get("empresas_trabajo") or []
-    if not datos.get("EmpresaTrabajo"):
+    empresa_trabajo = str(datos.get("EmpresaTrabajo") or "").strip()
+    datos["EmpresaTrabajo"] = empresa_trabajo
+    if not empresa_trabajo:
         errores.append("Seleccione la empresa para la que se realiza el viaje.")
-    elif datos.get("EmpresaTrabajo") not in empresas_trabajo:
-        errores.append("La empresa para la que se trabaja no es una opción configurada.")
+    elif len(empresa_trabajo) > 100 or any(c in empresa_trabajo for c in "\r\n"):
+        errores.append("La empresa para la que se trabaja debe ocupar una sola línea de hasta 100 caracteres.")
+    else:
+        empresas_trabajo = load_config().get("empresas_trabajo") or []
+        if empresa_trabajo.casefold() not in {e.casefold() for e in empresas_trabajo}:
+            save_config({"empresas_trabajo": empresas_trabajo + [empresa_trabajo]})
     return errores
 
 

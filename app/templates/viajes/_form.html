@@ -45,11 +45,16 @@
     </label>
     <label class="block">
       <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Empresa para la que se trabaja *</span>
-      <select name="EmpresaTrabajo" required class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+      <select name="EmpresaTrabajo" id="EmpresaTrabajoSelect" required onchange="alternarSelectNuevo(this, 'empresa-trabajo-nueva-wrapper', 'EmpresaTrabajoNueva')" class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
         <option value="">Seleccione…</option>
         {% for empresa in empresas_trabajo %}<option value="{{ empresa }}" {% if fila.EmpresaTrabajo == empresa %}selected{% endif %}>{{ empresa }}</option>{% endfor %}
+        <option value="__nueva__">+ Agregar empresa nueva…</option>
       </select>
-      {% if not empresas_trabajo %}<a href="/configuracion#empresas-trabajo" class="mt-1 block text-xs text-amber-700 hover:underline">Configure primero las empresas de trabajo.</a>{% endif %}
+      <div id="empresa-trabajo-nueva-wrapper" class="mt-2 hidden">
+        <input id="EmpresaTrabajoNueva" name="EmpresaTrabajo" type="text" maxlength="100" disabled placeholder="Nombre de la empresa"
+               class="w-full rounded-xl border border-stone-300 bg-white px-3 py-2.5 text-sm outline-none ring-gold/40 focus:ring-2">
+        <button type="button" onclick="cancelarSelectNuevo('EmpresaTrabajoSelect','empresa-trabajo-nueva-wrapper','EmpresaTrabajoNueva')" class="mt-1 text-xs text-stone-500 hover:underline">Cancelar, elegir de la lista</button>
+      </div>
     </label>
     <label id="precio-ruta-wrapper" class="block rounded-xl transition">
       <span class="mb-1 block text-xs font-medium uppercase tracking-wider text-stone-500">Precio vigente de la ruta</span>

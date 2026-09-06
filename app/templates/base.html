@@ -76,8 +76,37 @@
         </div>
         <div class="flex flex-wrap items-center gap-2">{% block actions %}{% endblock %}</div>
       </header>
+      {% set mensajes_error = {
+        "bloqueado": "No se pudo completar la acción: el archivo de datos está abierto en otro programa (por ejemplo Excel). Ciérrelo e inténtelo de nuevo.",
+        "carpeta": "No se pudo abrir la carpeta de exportaciones en el explorador de archivos.",
+        "fecha": "No se pudo renovar la póliza: la fecha de vencimiento registrada no es válida.",
+      } %}
+      {% set codigo_error = request.query_params.get("error") %}
+      {% if codigo_error %}
+      <div class="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+        {{ mensajes_error.get(codigo_error, "Ocurrió un error inesperado. Intente de nuevo.") }}
+      </div>
+      {% endif %}
       {% block content %}{% endblock %}
     </main>
   </div>
+  <script>
+    function alternarSelectNuevo(select, wrapperId, inputId) {
+      const esNueva = select.value === '__nueva__';
+      const wrapper = document.getElementById(wrapperId);
+      const input = document.getElementById(inputId);
+      wrapper.classList.toggle('hidden', !esNueva);
+      input.disabled = !esNueva;
+      select.disabled = esNueva;
+      input.required = esNueva;
+      if (esNueva) { input.value = ''; input.focus(); }
+    }
+    function cancelarSelectNuevo(selectId, wrapperId, inputId) {
+      const select = document.getElementById(selectId);
+      select.disabled = false;
+      select.value = '';
+      alternarSelectNuevo(select, wrapperId, inputId);
+    }
+  </script>
 </body>
 </html>

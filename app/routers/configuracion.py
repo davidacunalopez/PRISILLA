@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from urllib.parse import urlencode
 from zipfile import BadZipFile
 
 from fastapi import APIRouter, File, Request, UploadFile
@@ -38,14 +39,16 @@ def _rutas_visibles(cfg: dict | None = None) -> list[dict]:
     for ruta in cfg.get("rutas_configuradas") or []:
         salida = str(ruta.get("salida") or "")
         llegada = str(ruta.get("llegada") or "")
+        nombre_salida = estaciones.get(salida, "Estación no disponible")
+        nombre_llegada = estaciones.get(llegada, "Estación no disponible")
         rutas.append(
             {
                 "salida_id": salida,
                 "llegada_id": llegada,
-                "salida": estaciones.get(salida, "Estación no disponible"),
-                "llegada": estaciones.get(llegada, "Estación no disponible"),
+                "salida": nombre_salida,
+                "llegada": nombre_llegada,
+                "etiqueta": f"{nombre_salida} → {nombre_llegada}",
                 "codigo": str(ruta.get("codigo") or ""),
-                "interna": salida == llegada,
                 "precio": ruta.get("precio", ""),
                 "moneda": str(ruta.get("moneda") or "CRC"),
                 "precio_txt": (
@@ -61,11 +64,20 @@ def _rutas_visibles(cfg: dict | None = None) -> list[dict]:
     return rutas
 
 
+def _rutas_con_codigo(codigo: str, rutas: list[dict] | None = None) -> list[dict]:
+    buscado = codigo.strip().casefold()
+    if not buscado:
+        return []
+    return [r for r in (rutas if rutas is not None else _rutas_visibles()) if r["codigo"].casefold() == buscado]
+
+
 def _contexto(request: Request, *, errores: list[str] | None = None, **extra) -> dict:
     estaciones = sorted(
         excel_repo.leer("Empresas"),
         key=lambda e: str(e.get("NombreEmpresa") or "").casefold(),
     )
+    rutas = _rutas_visibles()
+    codigo_repetido = str(request.query_params.get("codigo_repetido") or "")
     contexto = {
         "titulo": "Configuración",
         "activo": "configuracion",
@@ -79,7 +91,8 @@ def _contexto(request: Request, *, errores: list[str] | None = None, **extra) ->
         "ruta_guardada": False,
         "estaciones": estaciones,
         "estaciones_activas": [e for e in estaciones if e.get("Estado") == "Activo"],
-        "rutas_configuradas": _rutas_visibles(),
+        "rutas_configuradas": rutas,
+        "rutas_mismo_codigo": _rutas_con_codigo(codigo_repetido, rutas),
     }
     contexto.update(extra)
     return contexto
@@ -188,12 +201,11 @@ async def guardar_ruta(request: Request):
 
     cfg = load_config()
     rutas = [dict(r) for r in cfg.get("rutas_configuradas") or []]
-    if any(
+    codigo_compartido = any(
         str(r.get("codigo") or "").casefold() == codigo.casefold()
         and (str(r.get("salida")) != salida or str(r.get("llegada")) != llegada)
         for r in rutas
-    ):
-        errores.append("Ese código ya está asignado a otra ruta.")
+    )
     if errores:
         return request.app.state.templates.TemplateResponse(
             request,
@@ -224,7 +236,10 @@ async def guardar_ruta(request: Request):
     actualizar_viajes_pendientes_de_ruta(
         salida, llegada, codigo=codigo, precio=precio, moneda=moneda
     )
-    return RedirectResponse("/configuracion?ruta_guardada=1#rutas", status_code=303)
+    query = {"ruta_guardada": "1"}
+    if codigo_compartido:
+        query["codigo_repetido"] = codigo
+    return RedirectResponse(f"/configuracion?{urlencode(query)}#rutas", status_code=303)
 
 
 @router.post("/rutas/{salida}/{llegada}/eliminar")

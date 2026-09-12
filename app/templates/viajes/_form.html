@@ -52,7 +52,7 @@
         </select>
         <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-soft">{{ icon("chevron-down", "w-4 h-4") }}</span>
       </div>
-      <span id="estado-categoria" class="mt-1 block text-xs text-soft">Ruptura se reserva para rutas dentro de la misma estación.</span>
+      <span class="mt-1 block text-xs text-soft">Viaje completo, desvío o ruptura, según el servicio realizado.</span>
     </label>
     <label class="block">
       <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Empresa para la que se trabaja <span class="text-accent">*</span></span>
@@ -154,41 +154,13 @@
     const moneda = document.getElementById('Moneda');
     const monedaVisible = document.getElementById('MonedaVisible');
     const estadoPrecio = document.getElementById('estado-precio');
-    const wrapperPrecio = document.getElementById('precio-ruta-wrapper');
     const estado = document.getElementById('estado-ruta');
-    const categoria = document.getElementById('Categoria');
-    const estadoCategoria = document.getElementById('estado-categoria');
-    const wrapperCategoria = document.getElementById('categoria-wrapper');
-    const wrapperCodigo = document.getElementById('codigo-ruta-wrapper');
-    const rutaInterna = Boolean(salida && llegada && salida === llegada);
     campo.value = codigo;
     const precioAplicado = usaHistorico ? precioHistorico : (ruta.precio ?? '');
     const monedaAplicada = usaHistorico ? monedaHistorica : (ruta.moneda || 'CRC');
     precio.value = precioAplicado;
     moneda.value = monedaAplicada;
     monedaVisible.value = precioAplicado !== '' ? monedaAplicada : '';
-    for (const opcion of categoria.options) {
-      opcion.disabled = rutaInterna ? opcion.value !== 'Ruptura' : opcion.value === 'Ruptura';
-    }
-    if (rutaInterna) {
-      categoria.value = 'Ruptura';
-      wrapperCategoria.className = 'block rounded-xl border border-violet-300 bg-violet-50 p-3 transition dark:border-violet-500/30 dark:bg-violet-500/10';
-      wrapperCodigo.className = 'block rounded-xl border border-violet-300 bg-violet-50 p-3 transition dark:border-violet-500/30 dark:bg-violet-500/10';
-      wrapperPrecio.className = 'block rounded-xl border border-violet-300 bg-violet-50 p-3 transition dark:border-violet-500/30 dark:bg-violet-500/10';
-      categoria.classList.add('border-violet-300', 'bg-violet-50', 'font-semibold', 'text-violet-900');
-      campo.classList.add('border-violet-300', 'bg-violet-50', 'text-violet-900');
-      estadoCategoria.className = 'mt-1 block text-xs font-medium text-violet-700 dark:text-violet-300';
-      estadoCategoria.textContent = 'Ruptura asignada automáticamente: salida y llegada corresponden a la misma estación.';
-    } else {
-      if (categoria.value === 'Ruptura') categoria.value = 'Viaje completo';
-      wrapperCategoria.className = 'block rounded-xl transition';
-      wrapperCodigo.className = 'block rounded-xl transition';
-      wrapperPrecio.className = 'block rounded-xl transition';
-      categoria.classList.remove('border-violet-300', 'bg-violet-50', 'font-semibold', 'text-violet-900');
-      campo.classList.remove('border-violet-300', 'bg-violet-50', 'text-violet-900');
-      estadoCategoria.className = 'mt-1 block text-xs text-soft';
-      estadoCategoria.textContent = 'Ruptura se reserva para rutas dentro de la misma estación.';
-    }
     if (!salida || !llegada) {
       estado.className = 'mt-1 block text-xs text-soft';
       estado.textContent = 'Seleccione salida y llegada.';

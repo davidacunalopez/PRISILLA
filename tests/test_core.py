@@ -103,10 +103,29 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertEqual(filas[0]["Estado"], "Renovado")
         self.assertEqual(filas[1]["FechaInicio"], "2026-07-01")
         self.assertEqual(filas[1]["FechaFin"], "2026-09-30")
-        self.assertEqual(filas[1]["FechaUltimoPago"], "2026-09-30")
+        self.assertEqual(filas[1]["FechaUltimoPago"], "")
         self.assertEqual(filas[1]["Estado"], "Activo")
 
-    def test_seguro_usa_fecha_fin_como_fecha_limite_de_pago(self):
+    def test_renovacion_conserva_el_margen_de_pago_del_periodo_anterior(self):
+        camion = excel_repo.insertar("Camiones", {"Placa": "REN1", "Marca": "M", "Estado": "Activo"})
+        seguro = excel_repo.insertar(
+            "Seguros",
+            {
+                "ID_Camion": camion["ID_Camion"],
+                "TipoSeguro": "Auto",
+                "Periodicidad": "Trimestral",
+                "FechaInicio": "2026-09-09",
+                "FechaFin": "2026-12-09",
+                "FechaUltimoPago": "2026-09-24",
+                "Estado": "Activo",
+            },
+        )
+        TestClient(app).post(f"/seguros/{seguro['ID_Seguro']}/renovar", follow_redirects=False)
+        nuevo = excel_repo.leer("Seguros")[1]
+        self.assertEqual(nuevo["FechaInicio"], "2026-12-10")
+        self.assertEqual(nuevo["FechaUltimoPago"], "2026-12-25")
+
+    def test_fecha_limite_de_pago_es_editable_e_independiente(self):
         camion = excel_repo.insertar(
             "Camiones", {"Placa": "POL1", "Marca": "M", "Estado": "Activo"}
         )
@@ -115,22 +134,25 @@ class LibroTemporalTest(unittest.TestCase):
             data={
                 "ID_Camion": camion["ID_Camion"],
                 "TipoSeguro": "Auto",
-                "Periodicidad": "Mensual",
-                "FechaInicio": "2026-08-01",
-                "FechaFin": "2026-08-31",
-                "FechaUltimoPago": "2020-01-01",
+                "Periodicidad": "Trimestral",
+                "FechaInicio": "2026-09-09",
+                "FechaFin": "2026-12-09",
+                "FechaUltimoPago": "2026-09-24",
                 "Estado": "Activo",
             },
             follow_redirects=False,
         )
         self.assertEqual(respuesta.status_code, 303)
         seguro = excel_repo.leer("Seguros")[0]
-        self.assertEqual(seguro["FechaUltimoPago"], "2026-08-31")
+        self.assertEqual(seguro["FechaUltimoPago"], "2026-09-24")
+        self.assertEqual(seguro["FechaFin"], "2026-12-09")
 
         formulario = TestClient(app).get("/seguros/nuevo")
+        self.assertIn("Vigencia desde", formulario.text)
+        self.assertIn("Vigencia hasta", formulario.text)
         self.assertIn("Fecha límite de pago", formulario.text)
         self.assertIn('name="FechaUltimoPago"', formulario.text)
-        self.assertIn("readonly", formulario.text)
+        self.assertNotIn("readonly", formulario.text)
         self.assertIn(">Trimestral</option>", formulario.text)
         self.assertNotIn(">Semestral</option>", formulario.text)
 
@@ -266,6 +288,7 @@ class LibroTemporalTest(unittest.TestCase):
                 "EmpresaTrabajo": "TCC",
                 "Precio": "50000",
                 "Moneda": "CRC",
+                "Categoria": "Viaje completo",
                 "Estado": "Pendiente",
             },
             follow_redirects=False,
@@ -860,7 +883,7 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertEqual(viaje["Categoria"], "Viaje completo")
         self.assertFalse(viaje["Enviada"])
 
-    def test_migracion_actualiza_periodicidad_y_fecha_limite_de_seguros(self):
+    def test_migracion_actualiza_periodicidad_y_respeta_fecha_limite(self):
         camion = excel_repo.insertar(
             "Camiones", {"Placa": "MIG1", "Marca": "M", "Estado": "Activo"}
         )
@@ -881,7 +904,7 @@ class LibroTemporalTest(unittest.TestCase):
 
         migrado = excel_repo.leer_por_id("Seguros", seguro["ID_Seguro"])
         self.assertEqual(migrado["Periodicidad"], "Trimestral")
-        self.assertEqual(migrado["FechaUltimoPago"], "2026-06-30")
+        self.assertEqual(migrado["FechaUltimoPago"], "2026-05-15")
 
     def test_mensaje_contadora_agrupa_y_marca_solo_pendientes(self):
         salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "Monte Verde", "Estado": "Activo"})
@@ -992,10 +1015,37 @@ class LibroTemporalTest(unittest.TestCase):
         )
         self.assertEqual(respuesta.status_code, 303)
         pagina = TestClient(app).get("/configuracion")
-        self.assertIn("Ruptura · ruta interna", pagina.text)
+        self.assertNotIn("ruta interna", pagina.text)
         self.assertIn("R-01", pagina.text)
 
-    def test_ruta_interna_fuerza_categoria_ruptura(self):
+    def test_codigo_de_ruta_repetido_se_guarda_con_aviso(self):
+        a = excel_repo.insertar("Empresas", {"NombreEmpresa": "Alfa", "Estado": "Activo"})
+        b = excel_repo.insertar("Empresas", {"NombreEmpresa": "Beta", "Estado": "Activo"})
+        c = excel_repo.insertar("Empresas", {"NombreEmpresa": "Gamma", "Estado": "Activo"})
+        cliente = TestClient(app)
+        primera = cliente.post(
+            "/configuracion/rutas",
+            data={"ID_Salida": a["ID_Empresa"], "ID_Llegada": b["ID_Empresa"], "Codigo": "51", "Precio": "1000", "Moneda": "CRC"},
+            follow_redirects=False,
+        )
+        self.assertNotIn("codigo_repetido", primera.headers["location"])
+
+        segunda = cliente.post(
+            "/configuracion/rutas",
+            data={"ID_Salida": a["ID_Empresa"], "ID_Llegada": c["ID_Empresa"], "Codigo": "51", "Precio": "2000", "Moneda": "CRC"},
+            follow_redirects=False,
+        )
+        self.assertEqual(segunda.status_code, 303)
+        self.assertIn("codigo_repetido=51", segunda.headers["location"])
+        rutas = app_config.load_config()["rutas_configuradas"]
+        self.assertEqual([r["codigo"] for r in rutas], ["51", "51"])
+
+        pagina = cliente.get(segunda.headers["location"].split("#")[0])
+        self.assertIn("Código compartido", pagina.text)
+        self.assertIn("Alfa → Beta", pagina.text)
+        self.assertIn("Alfa → Gamma", pagina.text)
+
+    def test_ruta_interna_respeta_la_categoria_elegida(self):
         estacion = excel_repo.insertar("Empresas", {"NombreEmpresa": "Bodega", "Estado": "Activo"})
         camion = excel_repo.insertar("Camiones", {"Placa": "RUP1", "Marca": "M", "Estado": "Activo"})
         chofer = excel_repo.insertar("Choferes", {"Nombre": "Nora", "Estado": "Activo"})
@@ -1018,10 +1068,10 @@ class LibroTemporalTest(unittest.TestCase):
         )
         self.assertEqual(respuesta.status_code, 303)
         viaje = excel_repo.leer("Viajes")[0]
-        self.assertEqual(viaje["Categoria"], "Ruptura")
+        self.assertEqual(viaje["Categoria"], "Desvío")
         self.assertEqual(viaje["CodigoRuta"], "77")
 
-    def test_ruptura_se_rechaza_entre_estaciones_distintas(self):
+    def test_ruptura_se_permite_entre_estaciones_distintas(self):
         salida = excel_repo.insertar("Empresas", {"NombreEmpresa": "A", "Estado": "Activo"})
         llegada = excel_repo.insertar("Empresas", {"NombreEmpresa": "B", "Estado": "Activo"})
         camion = excel_repo.insertar("Camiones", {"Placa": "NORUP", "Marca": "M", "Estado": "Activo"})
@@ -1035,15 +1085,17 @@ class LibroTemporalTest(unittest.TestCase):
                 "ID_Llegada": llegada["ID_Empresa"],
                 "ID_Camion": camion["ID_Camion"],
                 "ID_Chofer": chofer["ID_Chofer"],
+                "EmpresaTrabajo": "TCC",
                 "Precio": "20000",
                 "Moneda": "CRC",
                 "Categoria": "Ruptura",
                 "Estado": "Pendiente",
             },
+            follow_redirects=False,
         )
-        self.assertEqual(respuesta.status_code, 422)
-        self.assertIn("Ruptura solo puede utilizarse", respuesta.text)
-        self.assertEqual(excel_repo.leer("Viajes"), [])
+        self.assertEqual(respuesta.status_code, 303)
+        viaje = excel_repo.leer("Viajes")[0]
+        self.assertEqual(viaje["Categoria"], "Ruptura")
 
 
 class SemaforoTest(unittest.TestCase):

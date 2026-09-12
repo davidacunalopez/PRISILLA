@@ -48,6 +48,20 @@
       "codigo": "35145",
       "precio": 1221.12,
       "moneda": "CRC"
+    },
+    {
+      "salida": "EMP-003",
+      "llegada": "EMP-004",
+      "codigo": "35145",
+      "precio": 2000.0,
+      "moneda": "CRC"
+    },
+    {
+      "salida": "EMP-007",
+      "llegada": "EMP-003",
+      "codigo": "73635",
+      "precio": 3000.0,
+      "moneda": "CRC"
     }
   ]
 }

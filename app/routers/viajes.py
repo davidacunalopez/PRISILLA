@@ -97,10 +97,6 @@ def _preparar_datos(datos: dict, original: dict | None = None) -> list[str]:
     else:
         datos["Precio"] = ""
         datos["Moneda"] = moneda_configurada if moneda_configurada in {"CRC", "USD"} else "CRC"
-    if salida and llegada and salida == llegada:
-        datos["Categoria"] = "Ruptura"
-    elif datos.get("Categoria") == "Ruptura":
-        errores.append("La categoría Ruptura solo puede utilizarse cuando la salida y la llegada son la misma estación.")
     if datos.get("ID_Salida") and datos.get("ID_Llegada") and not datos.get("CodigoRuta"):
         errores.append(
             "La ruta seleccionada no tiene un código configurado. "
@@ -391,9 +387,7 @@ async def editar(request: Request, id_viaje: str):
         return HTMLResponse("Viaje no encontrado", status_code=404)
     fila["Fecha"] = _fecha_viaje(fila)
     fila["Semana"] = str(fila.get("Semana") or "")
-    fila["Categoria"] = fila.get("Categoria") or (
-        "Ruptura" if fila.get("ID_Salida") and fila.get("ID_Salida") == fila.get("ID_Llegada") else "Viaje completo"
-    )
+    fila["Categoria"] = fila.get("Categoria") or "Viaje completo"
     return templates.TemplateResponse(
         request,
         "viajes/_form.html",

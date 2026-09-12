@@ -168,7 +168,7 @@
         <td data-column="semana" class="px-3 py-3 whitespace-nowrap">Semana {{ v.Semana }}</td>
         <td data-column="codigo" class="px-3 py-3 font-medium">{{ v.CodigoRuta or "—" }}</td>
         <td data-column="categoria" class="px-3 py-3"><span class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium {% if v.Categoria == 'Ruptura' %}bg-violet-100 text-violet-700 ring-1 ring-violet-200 dark:bg-violet-500/15 dark:text-violet-300 dark:ring-violet-500/30{% elif v.Categoria == 'Desvío' %}bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-300{% else %}bg-primary/10 text-primary{% endif %}">{{ v.Categoria or "Viaje completo" }}</span></td>
-        <td data-column="ruta" class="px-3 py-3 min-w-36">{% if v.Categoria == 'Ruptura' and v.salida == v.llegada %}{{ v.salida }}{% else %}{{ v.salida }} → {{ v.llegada }}{% endif %}</td>
+        <td data-column="ruta" class="px-3 py-3 min-w-36">{% if v.salida == v.llegada %}{{ v.salida }}{% else %}{{ v.salida }} → {{ v.llegada }}{% endif %}</td>
         <td data-column="empresa" class="px-3 py-3">{{ v.EmpresaTrabajo or "—" }}</td>
         <td data-column="precio" class="px-3 py-3 whitespace-nowrap font-medium">{{ v.precio_txt }}</td>
         <td data-column="enviada" class="px-3 py-3 text-center">

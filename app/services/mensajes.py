@@ -50,7 +50,7 @@ def generar_mensaje_contadora(filas: list[dict]) -> str:
             codigo, categoria, salida, llegada, precio, moneda = clave
             cantidad = len(viajes)
             nombre = _descripcion(cantidad, categoria)
-            if categoria == "Ruptura" and salida == llegada:
+            if salida == llegada:
                 trayecto = f"en {salida}"
             else:
                 trayecto = f"de {salida} a {llegada}"

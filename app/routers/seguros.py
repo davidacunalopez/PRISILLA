@@ -103,7 +103,6 @@ async def crear(request: Request):
     datos = await datos_form(request, HOJA)
     if not datos.get("Moneda"):
         datos["Moneda"] = "CRC"
-    datos["FechaUltimoPago"] = datos.get("FechaFin") or ""
     errores = validar(HOJA, datos)
     if errores:
         return templates.TemplateResponse(
@@ -128,7 +127,6 @@ async def crear(request: Request):
 async def guardar(request: Request, id_seguro: str):
     templates = request.app.state.templates
     datos = await datos_form(request, HOJA)
-    datos["FechaUltimoPago"] = datos.get("FechaFin") or ""
     errores = validar(HOJA, datos, id_seguro)
     fila = {**(excel_repo.leer_por_id(HOJA, id_seguro) or fila_vacia(HOJA)), **datos, "ID_Seguro": id_seguro}
     if errores:
@@ -161,6 +159,13 @@ async def renovar(request: Request, id_seguro: str):
         return RedirectResponse("/seguros?error=fecha", status_code=303)
     inicio_nuevo = fin + timedelta(days=1)
     fin_nuevo = add_months(inicio_nuevo, meses) - timedelta(days=1)
+    # La aseguradora suele dar el mismo margen de pago en cada período; se conserva
+    # como propuesta y el usuario lo corrige al recibir el comprobante.
+    inicio_actual = parse_fecha(actual.get("FechaInicio"))
+    limite_actual = parse_fecha(actual.get("FechaUltimoPago"))
+    limite_nuevo = ""
+    if inicio_actual and limite_actual:
+        limite_nuevo = (inicio_nuevo + (limite_actual - inicio_actual)).isoformat()
     nuevo = {
         "ID_Camion": actual.get("ID_Camion", ""),
         "TipoSeguro": actual.get("TipoSeguro", ""),
@@ -172,7 +177,7 @@ async def renovar(request: Request, id_seguro: str):
         "MontoPrima": actual.get("MontoPrima", ""),
         "Moneda": actual.get("Moneda") or "CRC",
         "Estado": "Activo",
-        "FechaUltimoPago": fin_nuevo.isoformat(),
+        "FechaUltimoPago": limite_nuevo,
         "Notas": f"Renovación de {actual.get('ID_Seguro', '')}",
     }
     try:

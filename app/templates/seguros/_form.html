@@ -24,14 +24,16 @@
     {{ field("Aseguradora", "Aseguradora", fila.Aseguradora) }}
     {{ field("NumeroPoliza", "Número de póliza", fila.NumeroPoliza) }}
     {{ select("Periodicidad", "Periodicidad", fila.Periodicidad, choices.Periodicidad, required=true) }}
-    {{ field("FechaInicio", "Fecha inicio", fila.FechaInicio, type="date", required=true) }}
-    {{ field("FechaFin", "Fecha fin", fila.FechaFin, type="date", required=true) }}
     {{ field("MontoPrima", "Monto prima (CRC)", fila.MontoPrima, type="number", step="0.01") }}
-    <label class="block">
-      <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Fecha límite de pago</span>
-      <input id="FechaUltimoPago" type="date" name="FechaUltimoPago" value="{{ fila.FechaUltimoPago or fila.FechaFin or '' }}" readonly class="w-full cursor-not-allowed rounded-xl border border-line bg-surface2 px-3.5 py-2.5 text-sm text-soft">
-      <span class="mt-1 block text-xs text-soft">Se completa automáticamente con la fecha fin.</span>
-    </label>
+    <div class="grid gap-4 sm:col-span-2 sm:grid-cols-3">
+      {{ field("FechaInicio", "Vigencia desde", fila.FechaInicio, type="date", required=true) }}
+      {{ field("FechaFin", "Vigencia hasta", fila.FechaFin, type="date", required=true) }}
+      <label class="block">
+        <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Fecha límite de pago</span>
+        <input type="date" name="FechaUltimoPago" value="{{ fila.FechaUltimoPago or '' }}" class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">
+        <span class="mt-1 block text-xs text-soft">Plazo máximo que da la aseguradora para pagar.</span>
+      </label>
+    </div>
     {{ select("Estado", "Estado", fila.Estado or "Activo", choices.Estado, required=true) }}
     <input type="hidden" name="Moneda" value="{{ fila.Moneda or 'CRC' }}">
     {{ textarea("Notas", "Notas", fila.Notas) }}
@@ -45,15 +47,6 @@
   </div>
 </form>
 {% endcall %}
-<script>
-  (function () {
-    const fechaFin = document.querySelector('input[name="FechaFin"]');
-    const fechaLimite = document.getElementById('FechaUltimoPago');
-    function sincronizarFechaLimite() { fechaLimite.value = fechaFin.value; }
-    fechaFin?.addEventListener('change', sincronizarFechaLimite);
-    sincronizarFechaLimite();
-  })();
-</script>
 {% if fila.ID_Seguro %}
 <form id="borrar" method="post" action="/seguros/{{ fila.ID_Seguro }}/eliminar" hx-boost="false" class="hidden"></form>
 {% endif %}

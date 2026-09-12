@@ -39,6 +39,9 @@
 <div class="mt-6"></div>
 {% call card(title="Códigos de rutas", subtitle="Cada combinación es direccional y guarda su código, precio vigente y moneda. Al actualizarla, cambia los viajes pendientes; los ya enviados conservan su precio.", cls="max-w-5xl") %}
 <section id="rutas">
+  {% if rutas_mismo_codigo|length > 1 %}
+  {{ alert("warning", title="Código compartido", message="El código " ~ rutas_mismo_codigo[0].codigo ~ " ahora lo usan " ~ rutas_mismo_codigo|length ~ " rutas: " ~ (rutas_mismo_codigo|map(attribute="etiqueta")|join(", ")) ~ ". Se guardó de todas formas; revise que sea intencional.") }}
+  {% endif %}
   {% if estaciones_activas|length >= 1 %}
   <form id="form-ruta" method="post" action="/configuracion/rutas" hx-boost="false" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
     <label class="block">
@@ -58,6 +61,7 @@
     <label class="block">
       <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Código <span class="text-accent">*</span></span>
       <input id="ruta-codigo" type="text" name="Codigo" maxlength="50" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15" placeholder="Ej. 51">
+      <span id="aviso-codigo" class="mt-1 hidden text-xs font-medium text-amber-600 dark:text-amber-400"></span>
     </label>
     <label class="block">
       <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Precio <span class="text-accent">*</span></span>
@@ -69,9 +73,6 @@
         <option value="CRC">CRC · Colones</option><option value="USD">USD · Dólares</option>
       </select>
     </label>
-    <div id="aviso-ruta-interna" class="hidden rounded-xl border border-violet-300 bg-violet-50 px-4 py-3 text-sm text-violet-900 dark:border-violet-500/30 dark:bg-violet-500/10 dark:text-violet-200 sm:col-span-3">
-      <strong>Ruta interna especial:</strong> al usar esta combinación en un viaje, la categoría será automáticamente <strong>Ruptura</strong>.
-    </div>
     <div class="sm:col-span-2 lg:col-span-5"><button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar o actualizar ruta</button></div>
   </form>
   {% else %}
@@ -82,8 +83,8 @@
   <div class="mt-6 overflow-hidden rounded-xl border border-line">
     <table class="w-full text-left text-sm">
       <thead class="bg-surface2"><tr><th class="px-4 py-3">Salida</th><th class="px-4 py-3">Llegada</th><th class="px-4 py-3">Código</th><th class="px-4 py-3">Precio vigente</th><th class="px-4 py-3"></th></tr></thead>
-      <tbody>{% for ruta in rutas_configuradas %}<tr class="border-t {% if ruta.interna %}border-violet-200 bg-violet-50/70 dark:border-violet-500/20 dark:bg-violet-500/5{% else %}border-line{% endif %}">
-        <td class="px-4 py-3">{{ ruta.salida }}{% if ruta.interna %}<span class="ml-2 inline-flex rounded-full bg-violet-100 px-2 py-0.5 text-[11px] font-semibold text-violet-700 dark:bg-violet-500/15 dark:text-violet-300">Ruptura · ruta interna</span>{% endif %}</td><td class="px-4 py-3">{{ ruta.llegada }}</td><td class="px-4 py-3 font-medium {% if ruta.interna %}text-violet-700 dark:text-violet-300{% endif %}">{{ ruta.codigo }}</td><td class="px-4 py-3 font-medium">{{ ruta.precio_txt }}{% if ruta.precio is not none and ruta.precio != '' %} <span class="text-xs text-soft">{{ ruta.moneda }}</span>{% endif %}</td>
+      <tbody>{% for ruta in rutas_configuradas %}<tr class="border-t border-line">
+        <td class="px-4 py-3">{{ ruta.salida }}</td><td class="px-4 py-3">{{ ruta.llegada }}</td><td class="px-4 py-3 font-medium">{{ ruta.codigo }}</td><td class="px-4 py-3 font-medium">{{ ruta.precio_txt }}{% if ruta.precio is not none and ruta.precio != '' %} <span class="text-xs text-soft">{{ ruta.moneda }}</span>{% endif %}</td>
         <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" data-salida="{{ ruta.salida_id }}" data-llegada="{{ ruta.llegada_id }}" data-codigo="{{ ruta.codigo }}" data-precio="{{ ruta.precio }}" data-moneda="{{ ruta.moneda }}" onclick="editarRuta(this)" class="mr-3 text-primary hover:underline">Editar</button><form method="post" action="/configuracion/rutas/{{ ruta.salida_id }}/{{ ruta.llegada_id }}/eliminar" hx-boost="false" class="inline"><button type="submit" onclick="return confirm('¿Eliminar esta ruta configurada? Los viajes históricos conservarán su código y precio.')" class="text-red-600 hover:underline">Eliminar</button></form></td>
       </tr>{% endfor %}</tbody>
     </table>
@@ -91,22 +92,32 @@
   {% endif %}
   <script>
     (function () {
+      const rutas = {{ rutas_configuradas|tojson }};
       const salida = document.getElementById('ruta-salida');
       const llegada = document.getElementById('ruta-llegada');
-      const aviso = document.getElementById('aviso-ruta-interna');
-      function actualizarRutaInterna() {
-        const interna = salida?.value && salida.value === llegada?.value;
-        aviso?.classList.toggle('hidden', !interna);
+      const codigo = document.getElementById('ruta-codigo');
+      const aviso = document.getElementById('aviso-codigo');
+      function avisarCodigoRepetido() {
+        const buscado = (codigo?.value || '').trim().toLowerCase();
+        const otras = buscado
+          ? rutas.filter(r => r.codigo.toLowerCase() === buscado && !(r.salida_id === salida?.value && r.llegada_id === llegada?.value))
+          : [];
+        if (!aviso) return;
+        aviso.classList.toggle('hidden', otras.length === 0);
+        aviso.textContent = otras.length
+          ? 'Este código ya lo usa: ' + otras.map(r => r.etiqueta).join(', ') + '. Se puede guardar igual.'
+          : '';
       }
-      salida?.addEventListener('change', actualizarRutaInterna);
-      llegada?.addEventListener('change', actualizarRutaInterna);
+      codigo?.addEventListener('input', avisarCodigoRepetido);
+      salida?.addEventListener('change', avisarCodigoRepetido);
+      llegada?.addEventListener('change', avisarCodigoRepetido);
       window.editarRuta = function (boton) {
         salida.value = boton.dataset.salida;
         llegada.value = boton.dataset.llegada;
-        document.getElementById('ruta-codigo').value = boton.dataset.codigo;
+        codigo.value = boton.dataset.codigo;
         document.getElementById('ruta-precio').value = boton.dataset.precio;
         document.getElementById('ruta-moneda').value = boton.dataset.moneda;
-        actualizarRutaInterna();
+        avisarCodigoRepetido();
         document.getElementById('form-ruta').scrollIntoView({behavior: 'smooth', block: 'center'});
         document.getElementById('ruta-precio').focus();
       };

@@ -110,16 +110,9 @@ def migrar_libro(ruta: Path | None = None, crear_backup_previo: bool = True) -> 
                             if any(ws.cell(row, c).value not in (None, "") for c in range(1, len(headers))):
                                 ws.cell(row, len(headers), "CRC")
                     if col == "Categoria" and nombre == "Viajes":
-                        salida_idx = headers.index("ID_Salida") + 1
-                        llegada_idx = headers.index("ID_Llegada") + 1
                         for row in range(2, ws.max_row + 1):
-                            salida = str(ws.cell(row, salida_idx).value or "")
-                            llegada = str(ws.cell(row, llegada_idx).value or "")
-                            ws.cell(
-                                row,
-                                len(headers),
-                                "Ruptura" if salida and salida == llegada else "Viaje completo",
-                            )
+                            if any(ws.cell(row, c).value not in (None, "") for c in range(1, len(headers))):
+                                ws.cell(row, len(headers), "Viaje completo")
                     if col == "Enviada" and nombre == "Viajes":
                         estado_idx = headers.index("Estado") + 1
                         for row in range(2, ws.max_row + 1):
@@ -135,15 +128,6 @@ def migrar_libro(ruta: Path | None = None, crear_backup_previo: bool = True) -> 
                 for row in range(2, ws.max_row + 1):
                     if str(ws.cell(row, periodicidad_idx).value or "").strip() == "Semestral":
                         ws.cell(row, periodicidad_idx, "Trimestral")
-                        cambiado = True
-
-            if nombre == "Seguros" and {"FechaFin", "FechaUltimoPago"}.issubset(headers):
-                fecha_fin_idx = headers.index("FechaFin") + 1
-                fecha_limite_idx = headers.index("FechaUltimoPago") + 1
-                for row in range(2, ws.max_row + 1):
-                    fecha_fin = ws.cell(row, fecha_fin_idx).value
-                    if ws.cell(row, fecha_limite_idx).value != fecha_fin:
-                        ws.cell(row, fecha_limite_idx, fecha_fin)
                         cambiado = True
 
             tabla = next((t for t in ws.tables.values() if t.displayName == nombre), None)

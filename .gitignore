@@ -11,6 +11,10 @@ __pycache__/
 *.tmp
 *~
 
+# Configuración local (la app la reescribe: rutas, empresas, marcas)
+config.json
+.config_*.tmp.json
+
 # Excel, respaldos y exportaciones (datos operativos, nunca al repo)
 *.xlsx
 *.xls

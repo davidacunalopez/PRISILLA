@@ -29,6 +29,8 @@ No abra `basedatos.xlsx` en Excel mientras la app está en uso: el archivo queda
 
 Los umbrales del semáforo están en `config.json`. Los días restantes **no** se guardan en Excel: se calculan al abrir.
 
+`config.json` es local a cada máquina y no se versiona (la app lo reescribe con rutas, empresas y marcas). Si no existe, la app arranca con valores por defecto y lo crea al guardar la primera configuración.
+
 Cada escritura hace una copia con fecha y hora en `data/backups/` y conserva las últimas 10 (configurable en `backups_conservar`).
 
 ## Cómo se almacenan los datos

@@ -195,7 +195,12 @@ class RutasTest(unittest.TestCase):
         herramientas = [f.name for f in argumentos["config"].tools[0].function_declarations]
         self.assertEqual(
             herramientas,
-            ["guardar_ruta", "eliminar_ruta", "crear_estacion", "archivar_estacion", "reactivar_estacion"],
+            [
+                "guardar_ruta", "eliminar_ruta", "crear_estacion", "archivar_estacion", "reactivar_estacion",
+                "crear_camion", "editar_camion", "archivar_camion", "reactivar_camion",
+                "crear_chofer", "editar_chofer", "archivar_chofer", "reactivar_chofer",
+                "registrar_viaje", "editar_viaje", "eliminar_viaje",
+            ],
         )
 
     def test_ia_ofrece_boton_para_registrar_o_ver_la_ruta(self):

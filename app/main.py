@@ -22,6 +22,7 @@ from app.db.excel_repo import ExcelBloqueadoError
 from app.db.plantilla_base import asegurar_libro
 from app.routers import camiones, choferes, configuracion, dashboard, empresas, gasolina, ia, seguros, viajes
 from app.services.fechas import formato_crc, mostrar_fecha
+from app.services.formato import markdown_a_html
 
 HOST = "127.0.0.1"
 PORT = 8765
@@ -36,6 +37,7 @@ def crear_app() -> FastAPI:
     templates = Jinja2Templates(directory=str(APP_DIR / "templates"))
     templates.env.filters["fecha"] = mostrar_fecha
     templates.env.filters["crc"] = formato_crc
+    templates.env.filters["markdown"] = markdown_a_html
     templates.env.globals["configuracion_general"] = load_config
     templates.env.globals["static_version"] = str(int(max(
         p.stat().st_mtime for p in (APP_DIR / "static").iterdir() if p.is_file()

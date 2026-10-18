@@ -2,7 +2,7 @@
 {% from "_macros.html" import mostrar_errores, alert, card %}
 {% from "_icons.html" import icon %}
 {% block heading %}Pregúntale a la IA{% endblock %}
-{% block subhead %}<p class="mt-1 text-sm text-soft">Analice la operación o pida ayuda con rutas y estaciones. La IA propone cambios; nada se guarda sin su confirmación.</p>{% endblock %}
+{% block subhead %}<p class="mt-1 text-sm text-soft">Analice la operación o pida ayuda con rutas, estaciones, camiones, choferes y viajes. La IA propone cambios; nada se guarda sin su confirmación.</p>{% endblock %}
 {% block content %}
 <div class="grid max-w-5xl gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
   {% call card() %}
@@ -11,7 +11,7 @@
     {% endif %}
     {{ mostrar_errores(errores) }}
     {% for r in resultados %}{{ alert("success" if r.ok else "danger", title=r.titulo, message=r.mensaje) }}{% endfor %}
-    <form method="post" action="/ia/preguntar" hx-boost="false">
+    <form method="post" action="/ia/preguntar" hx-boost="false" data-ocupado="Consultando…">
       <label class="block">
         <span class="mb-2 block text-sm font-medium text-ink">¿Qué desea analizar?</span>
         <textarea id="pregunta-ia" name="pregunta" rows="5" maxlength="1000" required placeholder="Ejemplo: ¿Qué chofer registra el mayor gasto de gasolina y durante qué período?" class="w-full resize-y rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink shadow-sm outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/15">{{ pregunta }}</textarea>
@@ -20,12 +20,13 @@
         <span class="text-xs text-soft">Modelo: {{ modelo }}</span>
         <button type="submit" {% if not ia_lista %}disabled{% endif %} class="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:translate-y-0">{{ icon("sparkle", "w-4 h-4") }} Preguntar</button>
       </div>
+      <p data-estado-ocupado hidden role="status" class="mt-3 text-sm text-soft">Consultando a Gemini, puede tardar unos segundos. No cierre esta ventana.</p>
     </form>
 
     {% if respuesta %}
     <article class="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-5 dark:bg-surface2">
       <p class="mb-2 inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-primary">{{ icon("sparkle", "w-3.5 h-3.5") }} Respuesta de Gemini</p>
-      <div class="whitespace-pre-wrap text-sm leading-7 text-ink">{{ respuesta }}</div>
+      <div class="text-sm leading-7 text-ink">{{ respuesta|markdown }}</div>
       {% if acciones %}
       <div class="mt-5 flex flex-wrap gap-2 border-t border-line pt-4">
         {% for accion in acciones %}<a href="{{ accion.href }}" hx-boost="false" class="inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition hover:-translate-y-0.5 {% if loop.first %}bg-primary text-white shadow-sm shadow-primary/30{% else %}border border-line bg-surface text-ink hover:border-primary{% endif %}">{{ accion.texto }} {{ icon("arrow-right", "w-3.5 h-3.5") }}</a>{% endfor %}
@@ -48,7 +49,7 @@
           {% else %}
           <ul class="mt-2 list-disc space-y-0.5 pl-5 text-sm text-soft">{% for d in p.detalles %}<li>{{ d }}</li>{% endfor %}</ul>
           <div class="mt-3 flex flex-wrap gap-2">
-            <form method="post" action="/ia/cambios/{{ p.token }}/confirmar" hx-boost="false">
+            <form method="post" action="/ia/cambios/{{ p.token }}/confirmar" hx-boost="false" data-ocupado="Guardando…">
               <button type="submit"{% if p.destructiva %} onclick='return confirm({{ (p.titulo ~ ". Esta acción no se puede deshacer desde la app. ¿Confirmar?")|tojson }})'{% endif %} class="rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 {% if p.destructiva %}bg-red-600{% else %}bg-primary shadow-primary/30{% endif %}">Confirmar y guardar</button>
             </form>
             <form method="post" action="/ia/cambios/{{ p.token }}/descartar" hx-boost="false">
@@ -61,7 +62,7 @@
       </ol>
       {% set listos = propuestas|rejectattr("error")|list %}
       {% if listos|length > 1 %}
-      <form method="post" action="/ia/cambios/confirmar-todos" hx-boost="false" class="mt-4 border-t border-line pt-4">
+      <form method="post" action="/ia/cambios/confirmar-todos" hx-boost="false" data-ocupado="Guardando…" class="mt-4 border-t border-line pt-4">
         {% for p in listos %}<input type="hidden" name="token" value="{{ p.token }}">{% endfor %}
         <button type="submit"{% if listos|selectattr("destructiva")|list %} onclick="return confirm('Entre los cambios hay una eliminación. ¿Confirmar todos en orden?')"{% endif %} class="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Confirmar todos en orden ({{ listos|length }})</button>
       </form>
@@ -73,6 +74,7 @@
   <aside class="rounded-2xl border border-line bg-surface2 p-5">
     {% for titulo, lista in [
       ("Rutas y registro", sugerencias_rutas),
+      ("Camiones, choferes y viajes", sugerencias_registro),
       ("Análisis de la operación", [
         "¿Cuánto se ha gastado en gasolina por mes?",
         "¿Qué chofer registra más gasto de combustible?",
@@ -89,8 +91,64 @@
     </div>
     {% endfor %}
     <div class="mt-5 border-t border-line pt-4 text-xs leading-5 text-soft">
-      BITACORA envía resúmenes calculados, no el libro completo. Incluye el nombre y estado de las estaciones y las rutas con su código y tarifa. Excluye teléfonos, licencias, contactos, contenedores, chasis, guías y manifiestos.
+      BITACORA envía resúmenes calculados, no el libro completo. Incluye estaciones, rutas con su código y tarifa, camiones (placa y marca), nombres de choferes y los 20 viajes más recientes (sin contenedor, chasis ni guía). Excluye teléfonos, licencias, contactos, contenedores, chasis, guías y manifiestos.
     </div>
   </aside>
 </div>
+<script>
+  // Al enviar, el botón queda bloqueado con un indicador hasta que llegue la respuesta, para que se note que la solicitud ya salió.
+  (function () {
+    // htmx vuelve a ejecutar este script en cada navegación: el listener global debe registrarse una sola vez.
+    if (window.__bloqueoFormularios) return;
+    window.__bloqueoFormularios = true;
+    const giro = '<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" opacity=".25"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>';
+    function bloquear(form, mensaje) {
+      form.dataset.enviando = '1';
+      form.setAttribute('aria-busy', 'true');
+      form.querySelectorAll('textarea').forEach(t => { t.readOnly = true; });
+      const estado = form.querySelector('[data-estado-ocupado]');
+      if (estado) { estado.hidden = false; }
+      form.querySelectorAll('button[type=submit]').forEach(b => {
+        b.dataset.original = b.innerHTML;
+        b.innerHTML = giro + '<span>' + mensaje + '</span>';
+        b.classList.add('inline-flex', 'items-center', 'gap-2');
+        b.style.opacity = '.75';
+        b.style.cursor = 'wait';
+        b.disabled = true;
+      });
+      if (estado) {
+        form._lento = setTimeout(() => { estado.textContent = 'Está tardando más de lo normal. Si no responde, espere un momento y vuelva a intentarlo.'; }, 45000);
+      }
+    }
+    function liberar(form) {
+      delete form.dataset.enviando;
+      form.removeAttribute('aria-busy');
+      clearTimeout(form._lento);
+      form.querySelectorAll('textarea').forEach(t => { t.readOnly = false; });
+      const estado = form.querySelector('[data-estado-ocupado]');
+      if (estado) { estado.hidden = true; }
+      form.querySelectorAll('button[type=submit]').forEach(b => {
+        if (b.dataset.original === undefined) return;
+        b.innerHTML = b.dataset.original;
+        delete b.dataset.original;
+        b.style.opacity = '';
+        b.style.cursor = '';
+        b.disabled = false;
+      });
+    }
+    document.addEventListener('submit', function (e) {
+      const form = e.target;
+      const mensaje = form.dataset && form.dataset.ocupado;
+      if (!mensaje) return;
+      if (form.dataset.enviando) { e.preventDefault(); return; }
+      // Se difiere para no interferir con el envío en curso.
+      setTimeout(() => bloquear(form, mensaje), 0);
+      form.dataset.enviando = '1';
+    });
+    // Al volver con "atrás" el navegador puede restaurar la página con el botón aún bloqueado.
+    window.addEventListener('pageshow', function (e) {
+      if (e.persisted) document.querySelectorAll('form[data-enviando]').forEach(liberar);
+    });
+  })();
+</script>
 {% endblock %}

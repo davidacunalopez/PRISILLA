@@ -6,21 +6,11 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from app.db import excel_repo
 from app.db.excel_repo import ExcelBloqueadoError
 from app.db.schema import HOJAS, fila_vacia
-from app.config import load_config, save_config
+from app.services.camiones import errores_marca, marcas_disponibles as _marcas, registrar_marca
 from app.services.formularios import datos_form, validar
 
 router = APIRouter(prefix="/camiones")
 HOJA = "Camiones"
-
-
-def _marcas() -> list[str]:
-    configuradas = [str(m).strip() for m in load_config().get("marcas_camiones", []) if str(m).strip()]
-    existentes = [str(c.get("Marca") or "").strip() for c in excel_repo.leer(HOJA)]
-    unicas = {}
-    for marca in configuradas + existentes:
-        if marca:
-            unicas.setdefault(marca.casefold(), marca)
-    return sorted(unicas.values(), key=str.casefold)
 
 
 def _normalizar_marca(datos: dict, errores: list[str]) -> None:
@@ -29,17 +19,11 @@ def _normalizar_marca(datos: dict, errores: list[str]) -> None:
     datos["Marca"] = marca
     if not marca:
         return
-    if len(marca) > 50:
-        errores.append("La marca no puede tener más de 50 caracteres.")
+    problemas = errores_marca(marca)
+    if problemas:
+        errores.extend(problemas)
         return
-    if any(c in marca for c in "\r\n"):
-        errores.append("La marca debe ocupar una sola línea.")
-        return
-    if marca.casefold() not in {m.casefold() for m in _marcas()}:
-        cfg = load_config()
-        marcas = list(cfg.get("marcas_camiones") or [])
-        marcas.append(marca)
-        save_config({"marcas_camiones": marcas})
+    registrar_marca(marca)
 
 
 def _ctx(request: Request, **extra):

@@ -23,7 +23,7 @@ No abra `basedatos.xlsx` en Excel mientras la app está en uso: el archivo queda
 | Estaciones y choferes | Catálogos operativos para la bitácora; se archivan sin perder el historial. |
 | Viajes | Registro por fecha con semana ISO automática, categoría, código de ruta, empresa de trabajo, tarifa/moneda, camión/chofer y exportación Excel/CSV. Incluye columnas configurables, control booleano de envío y generación agrupada del mensaje para la contadora. |
 | Gasolina | Facturas por tipo de combustible, vehículo y chofer; precio por litro automático, filtros por período, comparación mensual y gráficos con participación del gasto. |
-| Pregúntale a la IA | Asistente Gemini: analiza viajes, gasolina, seguros y flota, y ayuda con rutas y estaciones. Puede proponer cambios, pero nada se guarda sin su confirmación. |
+| Pregúntale a la IA | Asistente Gemini: analiza viajes, gasolina, seguros y flota, y ayuda con rutas, estaciones, camiones, choferes y viajes. Puede proponer cambios, pero nada se guarda sin su confirmación. |
 | Configuración | Nombre de la aplicación/empresa, moneda, rutas con código y tarifa vigente modificable, umbrales, cantidad de respaldos e importación segura. Los cambios de tarifa actualizan viajes pendientes; los enviados conservan su precio. |
 | Inventario | Reservado; no se construye ahora. |
 
@@ -97,15 +97,18 @@ Excel admite hasta 1.048.576 filas por hoja, pero la aplicación se volverá len
 
 La clave se guarda en `.env`, que está excluido del repositorio, y nunca se vuelve a mostrar en la interfaz. BITACORA calcula localmente los resúmenes y envía a Gemini únicamente la información necesaria para responder. No envía el libro completo ni teléfonos, correos, licencias, contactos, contenedores, chasis, guías o manifiestos. Gemini nunca escribe por su cuenta: solo puede proponer cambios que usted confirma (ver «Cambios con confirmación»).
 
-**Ayuda con rutas.** Además de analizar datos, sirve para preguntar «¿tenemos una ruta de A a B?», «¿por qué no me deja guardar un viaje en esta ruta?» o «¿cómo registro la ruta de A a B?». BITACORA revisa localmente las rutas (si existe cada sentido, códigos compartidos, estaciones archivadas, precio faltante, viajes en rutas sin configurar) y le entrega ese diagnóstico a Gemini junto con las reglas de la app. Debajo de la respuesta aparece un botón que abre Configuración con la salida y la llegada ya elegidas. En cada pregunta se envían, además del resumen operativo, el nombre y estado de las estaciones y las rutas con su código y tarifa.
+**Ayuda con rutas.** Además de analizar datos, sirve para preguntar «¿tenemos una ruta de A a B?», «¿por qué no me deja guardar un viaje en esta ruta?» o «¿cómo registro la ruta de A a B?». BITACORA revisa localmente las rutas (si existe cada sentido, códigos compartidos, estaciones archivadas, precio faltante, viajes en rutas sin configurar) y le entrega ese diagnóstico a Gemini junto con las reglas de la app. Debajo de la respuesta aparece un botón que abre Configuración con la salida y la llegada ya elegidas. En cada pregunta se envían, además del resumen operativo: estaciones, rutas con su código y tarifa, camiones (placa, marca, estado y chofer habitual), nombres de choferes y los 20 viajes más recientes con su ID (sin contenedor, chasis ni guía). Si usted escribe un teléfono o una licencia en la pregunta, también viaja, porque es parte de lo que escribió.
 
-**Cambios con confirmación.** Si usted lo pide («registra la ruta de A a B, código 51, precio 5000»), la IA puede *proponer* crear o actualizar rutas, eliminarlas, y crear, archivar o reactivar estaciones. Nada se guarda por sí solo: cada propuesta aparece en una tarjeta con el detalle exacto (por ejemplo `Código: 35145 → 35146`, o cuántos viajes pendientes cambian de precio) y solo se aplica al pulsar **Confirmar y guardar** o **Confirmar todos en orden**. Reglas de seguridad:
+**Cambios con confirmación.** Si usted lo pide («registra la ruta de A a B, código 51, precio 5000»), la IA puede *proponer* registrar o corregir **viajes**, **camiones** y **choferes**; crear, archivar o reactivar estaciones, camiones y choferes; y crear, actualizar o eliminar rutas (y eliminar viajes). Nada se guarda por sí solo: cada propuesta aparece en una tarjeta con el detalle exacto (por ejemplo `Código: 35145 → 35146`, o cuántos viajes pendientes cambian de precio) y solo se aplica al pulsar **Confirmar y guardar** o **Confirmar todos en orden**. Reglas de seguridad:
 
-- Cada propuesta se valida igual que los formularios, y otra vez al confirmar (por si algo cambió mientras tanto).
-- Cada propuesta se usa una sola vez y vence a los 30 minutos. Las eliminaciones piden una segunda confirmación. Máximo 5 cambios por respuesta.
-- Si una ruta necesita una estación nueva, se propone primero la estación; confirmar en otro orden no pierde la propuesta.
+- Cada propuesta se valida con las mismas reglas que los formularios (placa única, año válido, estaciones y camiones activos, etc.), y otra vez al confirmar por si algo cambió mientras tanto.
+- En un viaje, el código y el precio **nunca los decide la IA**: salen de la ruta registrada, igual que en el formulario. Si el modelo manda otro precio, se ignora.
+- Proponer no escribe nada, ni siquiera la empresa o la marca nuevas que se agregan a los catálogos al guardar.
+- Cada propuesta se usa una sola vez y vence a los 30 minutos. Las eliminaciones piden una segunda confirmación. Máximo 10 cambios por respuesta.
+- Si algo depende de otra cosa nueva (una ruta que necesita una estación, un viaje que necesita su ruta, camión o chofer), se propone primero lo nuevo; confirmar en otro orden no pierde la propuesta, solo avisa qué falta.
 - Cada cambio aplicado queda en `data/ia_cambios.jsonl`, con el estado anterior para poder reconstruirlo.
-- Por ahora quedan fuera viajes, gasolina, camiones, choferes y seguros: se siguen registrando a mano.
+- Un viaje avisa si ya existe uno igual (mismo día, camión, chofer y ruta), y uno ya enviado a la contadora conserva su precio y no cambia de ruta.
+- Por ahora quedan fuera gasolina y seguros, y marcar un viaje como enviado: se siguen haciendo a mano.
 
 Las consultas requieren Internet y están sujetas a los precios, límites y condiciones del proyecto de Gemini utilizado. Para datos operativos reales se recomienda un proyecto con facturación activa por sus condiciones de tratamiento de datos.
 

@@ -8,15 +8,16 @@ from urllib.parse import parse_qsl, quote, urlencode
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
-from app.config import EXPORT_DIR, gemini_settings, load_config, save_config
+from app.config import EXPORT_DIR, gemini_settings, load_config
 from app.db import excel_repo
 from app.db.excel_repo import ExcelBloqueadoError
 from app.db.schema import HOJAS, fila_vacia
 from app.services.exportar import nombre_export, viajes_csv, viajes_xlsx
-from app.services.fechas import a_float, formato_crc, iso, mostrar_fecha, parse_fecha
+from app.services.fechas import a_float, formato_crc, iso, mostrar_fecha
 from app.services.formularios import datos_form, validar
 from app.services.ia import IaNoConfiguradaError, IaServicioError, redactar_mensaje_contadora_ia
 from app.services.mensajes import es_verdadero, generar_mensaje_contadora
+from app.services.viajes import datos_ruta as _datos_ruta, mapa_rutas as _mapa_rutas, preparar_datos, registrar_empresa_trabajo
 
 router = APIRouter(prefix="/viajes")
 HOJA = "Viajes"
@@ -24,22 +25,6 @@ HOJA = "Viajes"
 
 def _fecha_viaje(fila: dict) -> str:
     return iso(fila.get("Fecha") or fila.get("Desde"))
-
-
-def _mapa_rutas() -> dict[str, dict]:
-    return {
-        f"{str(r.get('salida') or '')}|{str(r.get('llegada') or '')}": {
-            "codigo": str(r.get("codigo") or ""),
-            "precio": r.get("precio", ""),
-            "moneda": str(r.get("moneda") or "CRC"),
-        }
-        for r in load_config().get("rutas_configuradas") or []
-        if r.get("salida") and r.get("llegada") and r.get("codigo")
-    }
-
-
-def _datos_ruta(salida: str, llegada: str) -> dict:
-    return _mapa_rutas().get(f"{salida}|{llegada}", {})
 
 
 def _precio_txt(precio, moneda: str) -> str:
@@ -50,73 +35,8 @@ def _precio_txt(precio, moneda: str) -> str:
 
 
 def _preparar_datos(datos: dict, original: dict | None = None) -> list[str]:
-    fecha = parse_fecha(datos.get("Fecha"))
-    if fecha:
-        datos["Fecha"] = fecha.isoformat()
-        datos["Desde"] = fecha.isoformat()
-        datos["Hasta"] = fecha.isoformat()
-        datos["Semana"] = str(fecha.isocalendar().week)
-    errores = []
-    salida = str(datos.get("ID_Salida") or "")
-    llegada = str(datos.get("ID_Llegada") or "")
-    enviada_original = bool(
-        original
-        and (es_verdadero(original.get("Enviada")) or original.get("Estado") == "Enviado a contadora")
-    )
-    if enviada_original and original and (
-        str(original.get("ID_Salida") or "") != salida
-        or str(original.get("ID_Llegada") or "") != llegada
-    ):
-        errores.append(
-            "Para cambiar la ruta de un viaje enviado, primero desmarque la casilla Enviada en la bitácora."
-        )
-    misma_ruta_historica = bool(
-        original
-        and enviada_original
-        and str(original.get("ID_Salida") or "") == salida
-        and str(original.get("ID_Llegada") or "") == llegada
-        and original.get("CodigoRuta")
-        and original.get("Precio") not in (None, "")
-    )
-    ruta = (
-        {
-            "codigo": original.get("CodigoRuta"),
-            "precio": original.get("Precio"),
-            "moneda": original.get("Moneda") or "CRC",
-        }
-        if misma_ruta_historica and original
-        else _datos_ruta(salida, llegada)
-    )
-    datos["CodigoRuta"] = str(ruta.get("codigo") or "")
-    precio_configurado = ruta.get("precio", "")
-    moneda_configurada = str(ruta.get("moneda") or "CRC")
-    precio = a_float(precio_configurado, -1)
-    if precio_configurado not in (None, "") and precio > 0 and moneda_configurada in {"CRC", "USD"}:
-        datos["Precio"] = round(precio, 2)
-        datos["Moneda"] = moneda_configurada
-    else:
-        datos["Precio"] = ""
-        datos["Moneda"] = moneda_configurada if moneda_configurada in {"CRC", "USD"} else "CRC"
-    if datos.get("ID_Salida") and datos.get("ID_Llegada") and not datos.get("CodigoRuta"):
-        errores.append(
-            "La ruta seleccionada no tiene un código configurado. "
-            "Agréguelo en Configuración → Códigos de rutas."
-        )
-    elif datos.get("CodigoRuta") and not datos.get("Precio"):
-        errores.append(
-            "La ruta seleccionada no tiene un precio vigente configurado. "
-            "Agréguelo en Configuración → Códigos de rutas."
-        )
-    empresa_trabajo = str(datos.get("EmpresaTrabajo") or "").strip()
-    datos["EmpresaTrabajo"] = empresa_trabajo
-    if not empresa_trabajo:
-        errores.append("Seleccione la empresa para la que se realiza el viaje.")
-    elif len(empresa_trabajo) > 100 or any(c in empresa_trabajo for c in "\r\n"):
-        errores.append("La empresa para la que se trabaja debe ocupar una sola línea de hasta 100 caracteres.")
-    else:
-        empresas_trabajo = load_config().get("empresas_trabajo") or []
-        if empresa_trabajo.casefold() not in {e.casefold() for e in empresas_trabajo}:
-            save_config({"empresas_trabajo": empresas_trabajo + [empresa_trabajo]})
+    errores = preparar_datos(datos, original)
+    registrar_empresa_trabajo(datos.get("EmpresaTrabajo"))
     return errores
 
 

@@ -5,7 +5,8 @@ import asyncio
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-from app.config import gemini_settings
+from app.config import gemini_settings, load_config
+from app.db import excel_repo
 from app.services import acciones_ia
 from app.services.ia import IaNoConfiguradaError, IaServicioError, preguntar_gemini
 from app.services.rutas import acciones_para_pregunta, estaciones_por_id
@@ -24,6 +25,22 @@ def _sugerencias_rutas() -> list[str]:
         f"¿Cómo registro la ruta de {a} a {b}?",
         "¿Por qué no me deja guardar un viaje en una ruta?",
         "Revisa mis rutas: ¿hay códigos repetidos o rutas con problemas?",
+    ]
+
+
+def _sugerencias_registro() -> list[str]:
+    """Ejemplos de registro con datos reales (placa, chofer, empresa) para que la usuaria solo ajuste lo necesario."""
+    activos = lambda hoja: [f for f in excel_repo.leer(hoja) if f.get("Estado") == "Activo"]
+    estaciones = sorted((e["NombreEmpresa"] for e in activos("Empresas")), key=str.casefold)
+    a, b = (estaciones + ["la estación A", "la estación B"])[:2]
+    placa = next((str(c["Placa"]) for c in activos("Camiones")), "ABC123")
+    chofer = next((str(c["Nombre"]) for c in activos("Choferes")), "Luis Pérez")
+    empresa = next(iter(load_config().get("empresas_trabajo") or []), "mi empresa")
+    return [
+        f"Registra un viaje de hoy de {a} a {b} con el camión {placa} y el chofer {chofer} para {empresa}",
+        "Agrega un camión con placa XYZ789, marca Volvo",
+        "Agrega al chofer Carla Mora, teléfono 8888-0000",
+        "Cambia la categoría de mi último viaje a Desvío",
     ]
 
 
@@ -46,6 +63,7 @@ def _ctx(
         "propuestas": propuestas or [],
         "resultados": resultados or [],
         "sugerencias_rutas": _sugerencias_rutas(),
+        "sugerencias_registro": _sugerencias_registro(),
         "errores": errores or [],
         "ia_lista": bool(cfg["enabled"] and cfg["api_key"]),
         "modelo": cfg["model"],

@@ -184,12 +184,13 @@ class AccionesIaTest(unittest.TestCase):
         self._estacion("Beta")
         llamadas = [("borrar_todo", {})] + [
             ("guardar_ruta", {"salida": "Alfa", "llegada": "Beta", "codigo": str(i), "precio": 10 + i})
-            for i in range(1, 8)
+            for i in range(1, 13)
         ]
         vistas = acciones_ia.preparar_propuestas(llamadas)
-        self.assertEqual([v["titulo"] for v in vistas if v["token"]], ["Crear la ruta Alfa → Beta"] * 4)
+        # tope de 10 llamadas: la desconocida no cuenta como propuesta, así que quedan 9 y se omiten 3
+        self.assertEqual([v["titulo"] for v in vistas if v["token"]], ["Crear la ruta Alfa → Beta"] * 9)
         self.assertNotIn("borrar_todo", str(vistas))
-        self.assertTrue(vistas[-1]["error"].startswith("Se omitieron"))
+        self.assertEqual(vistas[-1]["error"], "Se omitieron 3 cambios; pídalos en otra pregunta.")
         self.assertEqual(self._rutas(), {})
 
     def test_volver_a_validar_al_confirmar(self):
@@ -391,6 +392,30 @@ class AccionesIaTest(unittest.TestCase):
         self.assertIn("Elimina datos", pagina.text)
         self.assertIn("return confirm(", pagina.text)
         self.assertEqual(len(self._rutas()), 1)
+
+    def test_respuesta_de_gemini_se_muestra_con_formato_y_no_con_asteriscos(self):
+        cliente = MagicMock()
+        cliente.models.generate_content.return_value = _respuesta_gemini(
+            "Sí, la ruta **APM → Bioban** está registrada.\n\nDetalles:\n* **Salida:** APM\n* **Código:** 35145"
+        )
+        with patch("google.genai.Client", return_value=cliente):
+            pagina = self.cliente.post("/ia/preguntar", data={"pregunta": "¿Tenemos la ruta?"})
+        self.assertIn("<strong>APM → Bioban</strong>", pagina.text)
+        self.assertIn("<li><strong>Salida:</strong> APM</li>", pagina.text)
+        self.assertNotIn("**", pagina.text)
+
+    def test_los_formularios_de_la_ia_se_bloquean_al_enviar(self):
+        pagina = self.cliente.get("/ia").text
+        self.assertIn('data-ocupado="Consultando…"', pagina)
+        self.assertIn("data-estado-ocupado", pagina)  # texto "Consultando a Gemini…" que se muestra al enviar
+        self.assertIn("window.__bloqueoFormularios", pagina)  # un solo listener aunque htmx recargue el script
+
+        self._estacion("Alfa")
+        cliente = MagicMock()
+        cliente.models.generate_content.return_value = _respuesta_gemini("x", ("crear_estacion", {"nombre": "Nueva"}))
+        with patch("google.genai.Client", return_value=cliente):
+            propuestas = self.cliente.post("/ia/preguntar", data={"pregunta": "crea Nueva"}).text
+        self.assertIn('data-ocupado="Guardando…"', propuestas)  # confirmar también evita el doble clic
 
     def test_texto_malicioso_del_modelo_se_muestra_escapado(self):
         self._estacion("Alfa")

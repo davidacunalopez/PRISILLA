@@ -13,9 +13,15 @@ from app.config import gemini_settings, load_config, save_config, save_gemini_se
 from app.db import excel_repo
 from app.db.excel_repo import ExcelBloqueadoError
 from app.db.plantilla_base import LibroInvalidoError
-from app.services.fechas import a_float, formato_crc
+from app.services.fechas import a_float
 from app.services.ia import IaNoConfiguradaError, IaServicioError, probar_gemini
-from app.services.tarifas import actualizar_viajes_pendientes_de_ruta
+from app.services.rutas import (
+    analizar_rutas,
+    eliminar_ruta as quitar_ruta,
+    guardar_ruta as aplicar_ruta,
+    texto_precio,
+    validar_ruta,
+)
 
 router = APIRouter(prefix="/configuracion")
 
@@ -33,35 +39,10 @@ def _config_visible() -> dict:
 
 
 def _rutas_visibles(cfg: dict | None = None) -> list[dict]:
-    cfg = cfg or load_config()
-    estaciones = excel_repo.mapa_display("Empresas")
-    rutas = []
-    for ruta in cfg.get("rutas_configuradas") or []:
-        salida = str(ruta.get("salida") or "")
-        llegada = str(ruta.get("llegada") or "")
-        nombre_salida = estaciones.get(salida, "Estación no disponible")
-        nombre_llegada = estaciones.get(llegada, "Estación no disponible")
-        rutas.append(
-            {
-                "salida_id": salida,
-                "llegada_id": llegada,
-                "salida": nombre_salida,
-                "llegada": nombre_llegada,
-                "etiqueta": f"{nombre_salida} → {nombre_llegada}",
-                "codigo": str(ruta.get("codigo") or ""),
-                "precio": ruta.get("precio", ""),
-                "moneda": str(ruta.get("moneda") or "CRC"),
-                "precio_txt": (
-                    formato_crc(ruta.get("precio"))
-                    if str(ruta.get("moneda") or "CRC") == "CRC" and ruta.get("precio") not in (None, "")
-                    else f"${a_float(ruta.get('precio')):,.2f}"
-                    if ruta.get("precio") not in (None, "")
-                    else "Sin configurar"
-                ),
-            }
-        )
-    rutas.sort(key=lambda r: (r["salida"].casefold(), r["llegada"].casefold()))
-    return rutas
+    return [
+        {**ruta, "precio_txt": texto_precio(ruta["precio"], ruta["moneda"])}
+        for ruta in analizar_rutas(cfg)
+    ]
 
 
 def _rutas_con_codigo(codigo: str, rutas: list[dict] | None = None) -> list[dict]:
@@ -78,7 +59,15 @@ def _contexto(request: Request, *, errores: list[str] | None = None, **extra) ->
     )
     rutas = _rutas_visibles()
     codigo_repetido = str(request.query_params.get("codigo_repetido") or "")
+    activas = {str(e.get("ID_Empresa")) for e in estaciones if e.get("Estado") == "Activo"}
+    # Enlaces de la IA: /configuracion?ruta_salida=..&ruta_llegada=.. dejan el formulario preseleccionado.
+    prefill_salida = str(request.query_params.get("ruta_salida") or "")
+    prefill_llegada = str(request.query_params.get("ruta_llegada") or "")
+    if prefill_salida not in activas or prefill_llegada not in activas:
+        prefill_salida = prefill_llegada = ""
     contexto = {
+        "ruta_prefill_salida": prefill_salida,
+        "ruta_prefill_llegada": prefill_llegada,
         "titulo": "Configuración",
         "activo": "configuracion",
         "cfg": _config_visible(),
@@ -186,26 +175,7 @@ async def guardar_ruta(request: Request):
     codigo = str(form.get("Codigo") or "").strip()
     precio_raw = str(form.get("Precio") or "").strip()
     moneda = str(form.get("Moneda") or "CRC").strip().upper()
-    precio = a_float(precio_raw, -1)
-    errores = []
-    if not salida or excel_repo.leer_por_id("Empresas", salida) is None:
-        errores.append("Seleccione una estación de salida válida.")
-    if not llegada or excel_repo.leer_por_id("Empresas", llegada) is None:
-        errores.append("Seleccione una estación de llegada válida.")
-    if not codigo or len(codigo) > 50 or any(c in codigo for c in "\r\n"):
-        errores.append("El código de ruta es obligatorio y debe tener hasta 50 caracteres.")
-    if not precio_raw or precio <= 0:
-        errores.append("El precio de la ruta debe ser un número mayor a cero.")
-    if moneda not in {"CRC", "USD"}:
-        errores.append("La moneda de la ruta debe ser CRC o USD.")
-
-    cfg = load_config()
-    rutas = [dict(r) for r in cfg.get("rutas_configuradas") or []]
-    codigo_compartido = any(
-        str(r.get("codigo") or "").casefold() == codigo.casefold()
-        and (str(r.get("salida")) != salida or str(r.get("llegada")) != llegada)
-        for r in rutas
-    )
+    errores = validar_ruta(salida, llegada, codigo, precio_raw, moneda)
     if errores:
         return request.app.state.templates.TemplateResponse(
             request,
@@ -213,44 +183,16 @@ async def guardar_ruta(request: Request):
             _contexto(request, errores=errores),
             status_code=422,
         )
-
-    encontrada = False
-    for ruta in rutas:
-        if str(ruta.get("salida")) == salida and str(ruta.get("llegada")) == llegada:
-            ruta["codigo"] = codigo
-            ruta["precio"] = round(precio, 2)
-            ruta["moneda"] = moneda
-            encontrada = True
-            break
-    if not encontrada:
-        rutas.append(
-            {
-                "salida": salida,
-                "llegada": llegada,
-                "codigo": codigo,
-                "precio": round(precio, 2),
-                "moneda": moneda,
-            }
-        )
-    save_config({"rutas_configuradas": rutas})
-    actualizar_viajes_pendientes_de_ruta(
-        salida, llegada, codigo=codigo, precio=precio, moneda=moneda
-    )
+    resultado = aplicar_ruta(salida, llegada, codigo, a_float(precio_raw), moneda)
     query = {"ruta_guardada": "1"}
-    if codigo_compartido:
+    if resultado["codigo_compartido"]:
         query["codigo_repetido"] = codigo
     return RedirectResponse(f"/configuracion?{urlencode(query)}#rutas", status_code=303)
 
 
 @router.post("/rutas/{salida}/{llegada}/eliminar")
 async def eliminar_ruta(salida: str, llegada: str):
-    cfg = load_config()
-    rutas = [
-        r
-        for r in cfg.get("rutas_configuradas") or []
-        if not (str(r.get("salida")) == salida and str(r.get("llegada")) == llegada)
-    ]
-    save_config({"rutas_configuradas": rutas})
+    quitar_ruta(salida, llegada)
     return RedirectResponse("/configuracion#rutas", status_code=303)
 
 

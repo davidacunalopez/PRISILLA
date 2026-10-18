@@ -39,6 +39,7 @@
 <div class="mt-6"></div>
 {% call card(title="Códigos de rutas", subtitle="Cada combinación es direccional y guarda su código, precio vigente y moneda. Al actualizarla, cambia los viajes pendientes; los ya enviados conservan su precio.", cls="max-w-5xl") %}
 <section id="rutas">
+  <p class="mb-4 text-sm text-soft">¿Dudas con una ruta? <a href="/ia?q={{ '¿Tenemos registrada esta ruta? Revisa mis rutas y dime si hay códigos repetidos o problemas.'|urlencode }}" hx-boost="false" class="font-semibold text-primary hover:underline">Pregúntale a la IA</a>: puede decirte si una ruta ya existe, por qué un viaje no se guarda o cómo registrarla paso a paso.</p>
   {% if rutas_mismo_codigo|length > 1 %}
   {{ alert("warning", title="Código compartido", message="El código " ~ rutas_mismo_codigo[0].codigo ~ " ahora lo usan " ~ rutas_mismo_codigo|length ~ " rutas: " ~ (rutas_mismo_codigo|map(attribute="etiqueta")|join(", ")) ~ ". Se guardó de todas formas; revise que sea intencional.") }}
   {% endif %}
@@ -48,14 +49,14 @@
       <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Salida <span class="text-accent">*</span></span>
       <select id="ruta-salida" name="ID_Salida" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
         <option value="">Seleccione…</option>
-        {% for e in estaciones_activas %}<option value="{{ e.ID_Empresa }}">{{ e.NombreEmpresa }}</option>{% endfor %}
+        {% for e in estaciones_activas %}<option value="{{ e.ID_Empresa }}"{% if e.ID_Empresa == ruta_prefill_salida %} selected{% endif %}>{{ e.NombreEmpresa }}</option>{% endfor %}
       </select>
     </label>
     <label class="block">
       <span class="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-soft">Llegada <span class="text-accent">*</span></span>
       <select id="ruta-llegada" name="ID_Llegada" required class="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
         <option value="">Seleccione…</option>
-        {% for e in estaciones_activas %}<option value="{{ e.ID_Empresa }}">{{ e.NombreEmpresa }}</option>{% endfor %}
+        {% for e in estaciones_activas %}<option value="{{ e.ID_Empresa }}"{% if e.ID_Empresa == ruta_prefill_llegada %} selected{% endif %}>{{ e.NombreEmpresa }}</option>{% endfor %}
       </select>
     </label>
     <label class="block">
@@ -73,6 +74,7 @@
         <option value="CRC">CRC · Colones</option><option value="USD">USD · Dólares</option>
       </select>
     </label>
+    <div id="estado-ruta" hidden aria-live="polite" class="space-y-1.5 rounded-xl border border-line bg-surface2 px-4 py-3 text-sm sm:col-span-2 lg:col-span-5"></div>
     <div class="sm:col-span-2 lg:col-span-5"><button type="submit" class="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm shadow-primary/30 transition hover:-translate-y-0.5">Guardar o actualizar ruta</button></div>
   </form>
   {% else %}
@@ -80,13 +82,24 @@
   {% endif %}
 
   {% if rutas_configuradas %}
-  <div class="mt-6 overflow-hidden rounded-xl border border-line">
-    <table class="w-full text-left text-sm">
+  {% set compartidas = rutas_configuradas|selectattr("comparte_con")|list|length %}
+  <div class="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2">
+    <input id="rutas-buscar" type="search" placeholder="Buscar por estación o código…" aria-label="Buscar ruta" class="min-w-[14rem] flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
+    <label class="flex items-center gap-2 text-sm text-soft">Ordenar por
+      <select id="rutas-orden" class="rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-sm outline-none focus:border-primary focus:ring-4 focus:ring-primary/15">
+        <option value="salida">Salida</option><option value="llegada">Llegada</option><option value="codigo">Código</option>
+      </select>
+    </label>
+    {% if compartidas %}<label class="flex items-center gap-2 text-sm text-soft"><input id="rutas-solo-compartidas" type="checkbox" class="h-4 w-4 rounded border-line accent-primary"> Solo códigos compartidos ({{ compartidas }})</label>{% endif %}
+    <span id="rutas-contador" class="text-sm text-soft" aria-live="polite"></span>
+  </div>
+  <div class="mt-3 overflow-hidden rounded-xl border border-line">
+    <table id="tabla-rutas" class="w-full text-left text-sm">
       <thead class="bg-surface2"><tr><th class="px-4 py-3">Salida</th><th class="px-4 py-3">Llegada</th><th class="px-4 py-3">Código</th><th class="px-4 py-3">Precio vigente</th><th class="px-4 py-3"></th></tr></thead>
-      <tbody>{% for ruta in rutas_configuradas %}<tr class="border-t border-line">
-        <td class="px-4 py-3">{{ ruta.salida }}</td><td class="px-4 py-3">{{ ruta.llegada }}</td><td class="px-4 py-3 font-medium">{{ ruta.codigo }}</td><td class="px-4 py-3 font-medium">{{ ruta.precio_txt }}{% if ruta.precio is not none and ruta.precio != '' %} <span class="text-xs text-soft">{{ ruta.moneda }}</span>{% endif %}</td>
+      <tbody>{% for ruta in rutas_configuradas %}<tr data-ruta data-buscar="{{ ruta.salida }} {{ ruta.llegada }} {{ ruta.codigo }}" data-salida="{{ ruta.salida }}" data-llegada="{{ ruta.llegada }}" data-codigo="{{ ruta.codigo }}" data-compartida="{{ 1 if ruta.comparte_con else 0 }}" class="border-t border-line">
+        <td class="px-4 py-3">{{ ruta.salida }}</td><td class="px-4 py-3">{{ ruta.llegada }}{% for p in ruta.problemas %}<span class="mt-0.5 block text-xs font-medium text-red-600 dark:text-red-400">{{ p }}</span>{% endfor %}</td><td class="px-4 py-3 font-medium">{{ ruta.codigo }}{% if ruta.comparte_con %} <button type="button" data-codigo="{{ ruta.codigo }}" onclick="filtrarCodigo(this.dataset.codigo)" title="También lo usa: {{ ruta.comparte_con|join(', ') }}. Clic para ver todas las rutas con este código." class="badge-amarillo ml-1.5 inline-flex rounded-full px-2 py-0.5 text-xs font-medium hover:underline">Código compartido</button>{% endif %}</td><td class="px-4 py-3 font-medium">{{ ruta.precio_txt }}{% if ruta.precio is not none and ruta.precio != '' %} <span class="text-xs text-soft">{{ ruta.moneda }}</span>{% endif %}</td>
         <td class="px-4 py-3 text-right whitespace-nowrap"><button type="button" data-salida="{{ ruta.salida_id }}" data-llegada="{{ ruta.llegada_id }}" data-codigo="{{ ruta.codigo }}" data-precio="{{ ruta.precio }}" data-moneda="{{ ruta.moneda }}" onclick="editarRuta(this)" class="mr-3 text-primary hover:underline">Editar</button><form method="post" action="/configuracion/rutas/{{ ruta.salida_id }}/{{ ruta.llegada_id }}/eliminar" hx-boost="false" class="inline"><button type="submit" onclick="return confirm('¿Eliminar esta ruta configurada? Los viajes históricos conservarán su código y precio.')" class="text-red-600 hover:underline">Eliminar</button></form></td>
-      </tr>{% endfor %}</tbody>
+      </tr>{% endfor %}<tr id="rutas-sin-resultados" hidden><td colspan="5" class="px-4 py-6 text-center text-soft">Ninguna ruta coincide con la búsqueda.</td></tr></tbody>
     </table>
   </div>
   {% endif %}
@@ -97,10 +110,20 @@
       const llegada = document.getElementById('ruta-llegada');
       const codigo = document.getElementById('ruta-codigo');
       const aviso = document.getElementById('aviso-codigo');
+      const estado = document.getElementById('estado-ruta');
+      const normalizar = t => (t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+      const nombre = sel => sel?.selectedOptions?.[0]?.textContent?.trim() || '';
+      const mismaRuta = r => r.salida_id === salida?.value && r.llegada_id === llegada?.value;
+      const precioDe = r => (r.precio === '' || r.precio === null ? 'sin precio' : r.precio_txt + ' ' + r.moneda);
+      const lista = items => {
+        const textos = items.map(r => r.etiqueta + ' (código ' + r.codigo + ')');
+        return textos.slice(0, 6).join(', ') + (textos.length > 6 ? ' y ' + (textos.length - 6) + ' más' : '');
+      };
+
       function avisarCodigoRepetido() {
         const buscado = (codigo?.value || '').trim().toLowerCase();
         const otras = buscado
-          ? rutas.filter(r => r.codigo.toLowerCase() === buscado && !(r.salida_id === salida?.value && r.llegada_id === llegada?.value))
+          ? rutas.filter(r => r.codigo.toLowerCase() === buscado && !mismaRuta(r))
           : [];
         if (!aviso) return;
         aviso.classList.toggle('hidden', otras.length === 0);
@@ -108,9 +131,81 @@
           ? 'Este código ya lo usa: ' + otras.map(r => r.etiqueta).join(', ') + '. Se puede guardar igual.'
           : '';
       }
+
+      // Dice en vivo si la combinación salida → llegada es nueva o ya existe, y qué otras rutas comparten extremos.
+      function describirRuta() {
+        if (!estado) return;
+        estado.replaceChildren();
+        if (!salida?.value || !llegada?.value) { estado.hidden = true; return; }
+        const linea = (texto, clase) => {
+          const p = document.createElement('p');
+          p.className = clase;
+          p.textContent = texto;
+          estado.appendChild(p);
+        };
+        const existente = rutas.find(mismaRuta);
+        if (existente) {
+          linea('Esta ruta ya existe (código ' + existente.codigo + ' · ' + precioDe(existente) + '). Si guarda, reemplaza ese código y precio y actualiza los viajes pendientes de la ruta; los viajes enviados conservan su precio.', 'font-semibold text-amber-700 dark:text-amber-400');
+        } else {
+          linea('Ruta nueva: ' + nombre(salida) + ' → ' + nombre(llegada) + ' todavía no está registrada.', 'font-semibold text-emerald-700 dark:text-emerald-400');
+        }
+        const llegan = rutas.filter(r => r.llegada_id === llegada.value && !mismaRuta(r));
+        const salen = rutas.filter(r => r.salida_id === salida.value && !mismaRuta(r));
+        const regreso = salida.value !== llegada.value
+          ? rutas.find(r => r.salida_id === llegada.value && r.llegada_id === salida.value)
+          : null;
+        if (llegan.length) linea('Otras rutas que llegan a ' + nombre(llegada) + ': ' + lista(llegan) + '.', 'text-soft');
+        if (salen.length) linea('Otras rutas que salen de ' + nombre(salida) + ': ' + lista(salen) + '.', 'text-soft');
+        if (regreso) linea('Ruta de regreso ya registrada: ' + regreso.etiqueta + ' (código ' + regreso.codigo + ').', 'text-soft');
+        estado.hidden = false;
+      }
+
+      const cuerpo = document.querySelector('#tabla-rutas tbody');
+      const filas = cuerpo ? Array.from(cuerpo.querySelectorAll('tr[data-ruta]')) : [];
+      const buscar = document.getElementById('rutas-buscar');
+      const orden = document.getElementById('rutas-orden');
+      const soloCompartidas = document.getElementById('rutas-solo-compartidas');
+      const contador = document.getElementById('rutas-contador');
+      const sinResultados = document.getElementById('rutas-sin-resultados');
+      const criterios = {
+        salida: ['salida', 'llegada', 'codigo'],
+        llegada: ['llegada', 'salida', 'codigo'],
+        codigo: ['codigo', 'salida', 'llegada'],
+      };
+      const comparar = (a, b) => a.localeCompare(b, 'es', {numeric: true, sensitivity: 'base'});
+
+      function actualizarTabla() {
+        if (!cuerpo) return;
+        const termino = normalizar(buscar?.value).trim();
+        const claves = criterios[orden?.value] || criterios.salida;
+        filas.sort((a, b) => {
+          for (const k of claves) { const c = comparar(a.dataset[k], b.dataset[k]); if (c) return c; }
+          return 0;
+        });
+        let visibles = 0;
+        filas.forEach(fila => {
+          cuerpo.insertBefore(fila, sinResultados);
+          const coincide = normalizar(fila.dataset.buscar).includes(termino)
+            && (!soloCompartidas?.checked || fila.dataset.compartida === '1');
+          fila.hidden = !coincide;
+          if (coincide) visibles++;
+        });
+        sinResultados.hidden = visibles > 0;
+        contador.textContent = visibles === filas.length
+          ? filas.length + (filas.length === 1 ? ' ruta' : ' rutas')
+          : visibles + ' de ' + filas.length + ' rutas';
+      }
+
       codigo?.addEventListener('input', avisarCodigoRepetido);
-      salida?.addEventListener('change', avisarCodigoRepetido);
-      llegada?.addEventListener('change', avisarCodigoRepetido);
+      [salida, llegada].forEach(sel => sel?.addEventListener('change', () => { avisarCodigoRepetido(); describirRuta(); }));
+      [buscar, orden, soloCompartidas].forEach(el => el?.addEventListener('input', actualizarTabla));
+      window.filtrarCodigo = function (valor) {
+        if (!buscar) return;
+        buscar.value = valor;
+        if (soloCompartidas) soloCompartidas.checked = false;
+        actualizarTabla();
+        buscar.scrollIntoView({behavior: 'smooth', block: 'center'});
+      };
       window.editarRuta = function (boton) {
         salida.value = boton.dataset.salida;
         llegada.value = boton.dataset.llegada;
@@ -118,9 +213,13 @@
         document.getElementById('ruta-precio').value = boton.dataset.precio;
         document.getElementById('ruta-moneda').value = boton.dataset.moneda;
         avisarCodigoRepetido();
+        describirRuta();
         document.getElementById('form-ruta').scrollIntoView({behavior: 'smooth', block: 'center'});
         document.getElementById('ruta-precio').focus();
       };
+      actualizarTabla();
+      describirRuta();
+      {% if ruta_prefill_salida %}codigo?.focus({preventScroll: true});{% endif %}
     })();
   </script>
 </section>

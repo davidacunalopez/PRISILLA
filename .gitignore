@@ -1,34 +1,55 @@
+# Este repo se sincroniza entre dos computadoras (desarrollo y operación).
+# Solo viaja el CÓDIGO. Todo lo que la app escribe o lo que es de una sola
+# máquina se queda local y nunca se ve en `git status` de la otra.
+
+# --- Entorno de Python (cada máquina crea el suyo con iniciar_app.bat) ---
 .venv/
+venv/
 __pycache__/
 *.py[cod]
 *.egg-info/
 .pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
 
-# Credenciales y temporales
+# --- Credenciales y temporales (.env.example sí viaja como plantilla) ---
 .env
 .env.*
 !.env.example
 *.tmp
+*.bak
+*.swp
 *~
 
-# Configuración local (la app la reescribe: rutas, empresas, marcas)
+# --- Configuración local: la app la reescribe (rutas, tarifas, empresas, marcas) ---
 config.json
 .config_*.tmp.json
 
-# Excel, respaldos y exportaciones (datos operativos, nunca al repo)
+# --- Datos operativos: libro Excel, respaldos y exportaciones ---
+# Todo lo que haya dentro de data/ es de esa máquina; solo viajan los .gitkeep
+# que mantienen vacías las carpetas.
+/data/*
+!/data/.gitkeep
+!/data/backups/
+/data/backups/*
+!/data/backups/.gitkeep
 *.xlsx
 *.xls
 *.xlsm
 *.xlsb
 *.csv
 ~$*
-data/basedatos.xlsx
-data/basedatos*.xlsx
-data/backups/*
-!data/backups/.gitkeep
-data/exportaciones/*
-!data/.gitkeep
 
+# --- Herramientas personales (editor, Claude Code, sistema operativo) ---
+# .claude/launch.json (arranque del servidor de pruebas) sí viaja; lo demás no.
+.claude/*
+!.claude/launch.json
+CLAUDE.local.md
 .idea/
 .vscode/
 *.log
+Thumbs.db
+Desktop.ini
+.DS_Store

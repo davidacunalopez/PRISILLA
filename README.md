@@ -23,7 +23,7 @@ No abra `basedatos.xlsx` en Excel mientras la app está en uso: el archivo queda
 | Estaciones y choferes | Catálogos operativos para la bitácora; se archivan sin perder el historial. |
 | Viajes | Registro por fecha con semana ISO automática, categoría, código de ruta, empresa de trabajo, tarifa/moneda, camión/chofer y exportación Excel/CSV. Incluye columnas configurables, control booleano de envío y generación agrupada del mensaje para la contadora. |
 | Gasolina | Facturas por tipo de combustible, vehículo y chofer; precio por litro automático, filtros por período, comparación mensual y gráficos con participación del gasto. |
-| Pregúntale a la IA | Asistente Gemini de solo lectura para analizar viajes, gasolina, seguros y flota. |
+| Pregúntale a la IA | Asistente Gemini: analiza viajes, gasolina, seguros y flota, y ayuda con rutas y estaciones. Puede proponer cambios, pero nada se guarda sin su confirmación. |
 | Configuración | Nombre de la aplicación/empresa, moneda, rutas con código y tarifa vigente modificable, umbrales, cantidad de respaldos e importación segura. Los cambios de tarifa actualizan viajes pendientes; los enviados conservan su precio. |
 | Inventario | Reservado; no se construye ahora. |
 
@@ -32,6 +32,42 @@ Los umbrales del semáforo están en `config.json`. Los días restantes **no** s
 `config.json` es local a cada máquina y no se versiona (la app lo reescribe con rutas, empresas y marcas). Si no existe, la app arranca con valores por defecto y lo crea al guardar la primera configuración.
 
 Cada escritura hace una copia con fecha y hora en `data/backups/` y conserva las últimas 10 (configurable en `backups_conservar`).
+
+## Rutas
+
+Una ruta es un **par ordenado** estación de salida → estación de llegada, con su código, precio vigente y moneda (CRC o USD). En **Configuración → Códigos de rutas**:
+
+- Varias rutas pueden **llegar a la misma estación** (A → C y B → C) o **salir de la misma** (A → B y A → C). Lo único que no se repite es el mismo par exacto: si se guarda otra vez, se actualiza esa ruta (y los viajes pendientes que la usan).
+- **El sentido importa**: A → B y B → A son rutas distintas y se registran por separado.
+- Varias rutas pueden **compartir el mismo código**; el sistema lo permite, pero lo marca con la etiqueta «Código compartido» para revisarlo.
+- Al elegir salida y llegada, debajo aparece si la ruta es **nueva** o **ya existe** (con su código y precio), y qué otras rutas llegan a esa llegada, salen de esa salida o hacen el recorrido de regreso.
+- La tabla permite **buscar** (por estación o código, sin importar tildes), **ordenar** por salida, llegada o código, y filtrar **solo códigos compartidos**. Si una ruta tiene un problema (estación archivada, precio faltante) se indica debajo de la llegada.
+
+## Trabajo en dos computadoras (desarrollo y operación)
+
+El repositorio solo lleva el **código**. Lo que la app escribe es propio de cada computadora y `git pull` nunca lo toca ni lo sube:
+
+| Se queda local (está en `.gitignore`) | Contiene |
+| --- | --- |
+| `data/basedatos.xlsx`, `data/backups/`, `data/exportaciones/`, `data/ia_cambios.jsonl` | viajes, gasolina, seguros, flota, sus respaldos y la bitácora de cambios de la IA |
+| `config.json` | nombre, umbrales, marcas, empresas, **rutas y tarifas** |
+| `.env` | claves de Gemini y correo |
+| `.venv/` | entorno de Python (lo crea `iniciar_app.bat`) |
+
+Para actualizar la computadora de Priscilla, abrir una terminal en la carpeta del proyecto y ejecutar `git pull`. Una sola vez conviene dejar `git config pull.ff only`, así un `pull` nunca crea mezclas inesperadas.
+
+Como nada de eso se versiona, lo que cada computadora registre (rutas, tarifas, viajes) **nunca genera conflictos** al hacer `git pull`; tampoco se mezcla con lo de la otra.
+
+**Solo si `git pull` se queja de `config.json`** (hasta hace poco el archivo estaba versionado), no perderá nada si sigue estos pasos:
+
+```
+copy config.json ..\config_respaldo.json
+git checkout -- config.json
+git pull
+copy ..\config_respaldo.json config.json
+```
+
+Si el `pull` ya terminó sin avisos, no hay nada que hacer.
 
 ## Cómo se almacenan los datos
 
@@ -59,7 +95,17 @@ Excel admite hasta 1.048.576 filas por hoja, pero la aplicación se volverá len
 4. Use **Probar conexión** para verificar API key y modelo sin enviar datos operativos.
 5. Abra **Pregúntale a la IA** desde el menú lateral.
 
-La clave se guarda en `.env`, que está excluido del repositorio, y nunca se vuelve a mostrar en la interfaz. BITACORA calcula localmente los resúmenes y envía a Gemini únicamente la información necesaria para responder. No envía el libro completo ni teléfonos, correos, licencias, contactos, contenedores, chasis, guías o manifiestos. La primera versión es estrictamente de solo lectura: no puede crear, editar, archivar, eliminar ni restaurar registros.
+La clave se guarda en `.env`, que está excluido del repositorio, y nunca se vuelve a mostrar en la interfaz. BITACORA calcula localmente los resúmenes y envía a Gemini únicamente la información necesaria para responder. No envía el libro completo ni teléfonos, correos, licencias, contactos, contenedores, chasis, guías o manifiestos. Gemini nunca escribe por su cuenta: solo puede proponer cambios que usted confirma (ver «Cambios con confirmación»).
+
+**Ayuda con rutas.** Además de analizar datos, sirve para preguntar «¿tenemos una ruta de A a B?», «¿por qué no me deja guardar un viaje en esta ruta?» o «¿cómo registro la ruta de A a B?». BITACORA revisa localmente las rutas (si existe cada sentido, códigos compartidos, estaciones archivadas, precio faltante, viajes en rutas sin configurar) y le entrega ese diagnóstico a Gemini junto con las reglas de la app. Debajo de la respuesta aparece un botón que abre Configuración con la salida y la llegada ya elegidas. En cada pregunta se envían, además del resumen operativo, el nombre y estado de las estaciones y las rutas con su código y tarifa.
+
+**Cambios con confirmación.** Si usted lo pide («registra la ruta de A a B, código 51, precio 5000»), la IA puede *proponer* crear o actualizar rutas, eliminarlas, y crear, archivar o reactivar estaciones. Nada se guarda por sí solo: cada propuesta aparece en una tarjeta con el detalle exacto (por ejemplo `Código: 35145 → 35146`, o cuántos viajes pendientes cambian de precio) y solo se aplica al pulsar **Confirmar y guardar** o **Confirmar todos en orden**. Reglas de seguridad:
+
+- Cada propuesta se valida igual que los formularios, y otra vez al confirmar (por si algo cambió mientras tanto).
+- Cada propuesta se usa una sola vez y vence a los 30 minutos. Las eliminaciones piden una segunda confirmación. Máximo 5 cambios por respuesta.
+- Si una ruta necesita una estación nueva, se propone primero la estación; confirmar en otro orden no pierde la propuesta.
+- Cada cambio aplicado queda en `data/ia_cambios.jsonl`, con el estado anterior para poder reconstruirlo.
+- Por ahora quedan fuera viajes, gasolina, camiones, choferes y seguros: se siguen registrando a mano.
 
 Las consultas requieren Internet y están sujetas a los precios, límites y condiciones del proyecto de Gemini utilizado. Para datos operativos reales se recomienda un proyecto con facturación activa por sus condiciones de tratamiento de datos.
 

@@ -18,7 +18,7 @@ from app.routers import viajes as viajes_router
 from app.services.exportar import viajes_csv
 from app.services.fechas import semaforo
 from app.services.formularios import validar
-from app.services.ia import construir_contexto, preguntar_gemini
+from app.services.ia import RespuestaIA, construir_contexto, preguntar_gemini
 from app.services.mensajes import generar_mensaje_contadora
 
 
@@ -436,17 +436,17 @@ class LibroTemporalTest(unittest.TestCase):
         self.assertIn("Clave configurada", pagina.text)
         self.assertNotIn("clave-secreta-de-prueba", pagina.text)
 
-    def test_preguntale_a_la_ia_es_solo_lectura_y_muestra_respuesta(self):
+    def test_preguntale_a_la_ia_muestra_respuesta_y_avisa_que_nada_se_guarda_sin_confirmar(self):
         app_config.save_gemini_settings(
             api_key="clave-prueba", model="gemini-3.6-flash", enabled=True
         )
-        with patch("app.routers.ia.preguntar_gemini", return_value="Resumen operativo de prueba"):
+        with patch("app.routers.ia.preguntar_gemini", return_value=RespuestaIA("Resumen operativo de prueba")):
             respuesta = TestClient(app).post(
                 "/ia/preguntar", data={"pregunta": "Dame un resumen"}
             )
         self.assertEqual(respuesta.status_code, 200)
         self.assertIn("Resumen operativo de prueba", respuesta.text)
-        self.assertIn("La IA no modifica información", respuesta.text)
+        self.assertIn("nada se guarda sin su confirmación", respuesta.text)
 
     def test_preguntale_a_la_ia_exige_configuracion(self):
         respuesta = TestClient(app).post(
@@ -478,7 +478,8 @@ class LibroTemporalTest(unittest.TestCase):
         cliente.models.generate_content.return_value.text = "Todo en orden"
         with patch("google.genai.Client", return_value=cliente):
             respuesta = preguntar_gemini("Dame un resumen")
-        self.assertEqual(respuesta, "Todo en orden")
+        self.assertEqual(respuesta.texto, "Todo en orden")
+        self.assertEqual(respuesta.propuestas, [])
         argumentos = cliente.models.generate_content.call_args.kwargs
         self.assertIn("Resumen calculado por BITACORA", argumentos["contents"])
         self.assertEqual(argumentos["model"], "gemini-3.6-flash")
